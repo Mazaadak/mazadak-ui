@@ -225,7 +225,7 @@ export const RegisterPage = () => {
                       {...field}
                       id="form-rhf-register-phone"
                       aria-invalid={fieldState.invalid}
-                      placeholder="1234567890"
+                      placeholder="+201010101010"
                       autoComplete="off"
                     />
                     {fieldState.invalid && (
@@ -258,43 +258,43 @@ export const RegisterPage = () => {
                   </Field>
                 )}
               />
-<Controller
-  name="dateOfBirth"
-  control={form.control}
-  render={({ field, fieldState }) => (
-    <Field data-invalid={fieldState.invalid}>
-      <FieldLabel htmlFor="form-rhf-register-dateOfBirth">
-        Date of Birth
-      </FieldLabel>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            id="date"
-            className="w-full justify-between font-normal"
-          >
-            {field.value ? field.value.toLocaleDateString() : "Select date"}
-            <ChevronDownIcon />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={field.value}
-            captionLayout="dropdown"
-            onSelect={field.onChange}
-            initialFocus
-            fromYear={1900}
-            toYear={new Date().getFullYear()}
-          />
-        </PopoverContent>
-      </Popover>
-      {fieldState.invalid && (
-        <FieldError>{fieldState.error?.message}</FieldError>
-      )}
-    </Field>
-  )}
-/>
+            <Controller
+              name="dateOfBirth"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="form-rhf-register-dateOfBirth">
+                    Date of Birth
+                  </FieldLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        id="date"
+                        className="w-full justify-between font-normal"
+                      >
+                        {field.value ? field.value.toLocaleDateString() : "Select date"}
+                        <ChevronDownIcon />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        captionLayout="dropdown"
+                        onSelect={field.onChange}
+                        initialFocus
+                        fromYear={1900}
+                        toYear={new Date().getFullYear()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  {fieldState.invalid && (
+                    <FieldError>{fieldState.error?.message}</FieldError>
+                  )}
+                </Field>
+              )}
+            />
             </FieldGroup>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

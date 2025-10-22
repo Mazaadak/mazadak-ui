@@ -75,25 +75,26 @@ export const Navbar = () => {
               {/* Profile and logout */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
+                  {/* // TODO replace with user avatar when available */}
                   <Button variant="ghost" size="sm">
-                    Profile
+                    Profile 
                     <ChevronDown />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem>
-                    <Link to="/profile" className="flex flex-row align-center">
-                      View Profile
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Link to="/settings">
                       Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Link to="/orders">
-                      My Orders
+                    <Link to="/purchases">
+                      My Purchases
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link to="/sales">
+                      My Sales
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
