@@ -1,12 +1,60 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import apiClient from "../lib/apiClient";
 import { getAccessToken, setAccessToken, clearAccessToken } from "../lib/apiClient";
+import { useUser } from "../hooks/useUsers";
+import { usersAPI } from "../api/users";
+import { data } from "react-router-dom";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const decodeToken = (token) => {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1];
+    const decodedPayload = JSON.parse(atob(payload));
+    return decodedPayload;
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return null;
+  }
+};
+
+const setUserFromToken = async (token) => {
+  if (!token) {
+    setUser(null);
+    return;
+  }
+
+  try {
+    const decodedToken = decodeToken(token);
+    if (decodedToken && decodedToken['user-id']) { 
+      const userData = await fetchUserData(decodedToken['user-id']);
+      const dataToBeStored = { userId: decodedToken['user-id'], ...userData, token: token };
+      console.log("Setting user data:", dataToBeStored);
+      setUser(dataToBeStored);
+    } else {
+      console.warn("No user ID found in token");
+      setUser({ token });
+    }
+  } catch (error) {
+    console.error("Error setting user from token:", error);
+    setUser({ token });
+  }
+};
+
+  const fetchUserData = async (userId) => {
+    try {
+      const userData = await usersAPI.getUser(userId);
+      return userData;
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      throw error;
+    }
+  };
 
   // check if user is already logged in on mount
   useEffect(() => {
@@ -30,7 +78,8 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
       setAccessToken(data.jwtToken);
-      setUser({ token: data.jwtToken });
+      await setUserFromToken(data.jwtToken);
+      console.log("User is authenticated");
     } catch (error) {
       console.log("No active session");
       clearAccessToken();
@@ -41,14 +90,14 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password) => {
     const response = await apiClient.post("/auth/login", { username, password });
-    setAccessToken(response.data.jwtToken);
-    setUser({ token: response.data.jwtToken });
-    return response.data;
+    setAccessToken(response.jwtToken);
+    await setUserFromToken(response.jwtToken);
+    return response;
   };
 
   const register = async (userData) => {
     const response = await apiClient.post("/users/register", userData);
-    return response.data;
+    return response;
   };
 
   const logout = async () => {
@@ -75,15 +124,15 @@ export const AuthProvider = ({ children }) => {
 
   const verifyOtp = async (email, otp) => {
     const response = await apiClient.post("/auth/verify-otp", { email, otp });
-    setAccessToken(response.data.accessToken);
-    return response.data.accessToken;
+    setAccessToken(response.accessToken);
+    return response.accessToken;
   };
 
   const resetPassword = async (password) => {
     const response = await apiClient.post("/auth/reset-password", { token: getAccessToken(), password: password });
-    setAccessToken(response.data.jwtToken);
-    setUser({ token: response.data.jwtToken }); // TODO: set real user data
-    return response.data;
+    setAccessToken(response.jwtToken);
+    await setUserFromToken(response.jwtToken);
+    return response;
   };
 
   return (

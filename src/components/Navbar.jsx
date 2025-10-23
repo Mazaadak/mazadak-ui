@@ -70,12 +70,17 @@ export const Navbar = () => {
                     My Auctions
                   </Button>
                 </Link>
+                <Link to="/create-item">
+                  <Button size="sm" className="hidden sm:flex">
+                    Sell Item
+                  </Button>
+                </Link>
               </div>
               
               {/* Profile and logout */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  {/* // TODO replace with user avatar when available */}
+                  {/* TODO replace with user avatar when available */}
                   <Button variant="ghost" size="sm">
                     Profile 
                     <ChevronDown />

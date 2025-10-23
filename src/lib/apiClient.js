@@ -28,6 +28,7 @@ apiClient.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
+    config.headers['Idempotency-Key'] = crypto.randomUUID();
     return config;
   },
   (error) => Promise.reject(error)
@@ -35,7 +36,7 @@ apiClient.interceptors.request.use(
 
 // response interceptor to handle 401 errors and token refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => response.data,
   async (error) => {    
     const originalRequest = error.config;
 

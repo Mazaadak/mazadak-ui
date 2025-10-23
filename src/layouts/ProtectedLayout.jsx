@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { ProtectedRoute } from '../../components/ProtectedRoute';
-import { Navbar } from '../../components/Navbar';
+import { ProtectedRoute } from '../components/ProtectedRoute';
+import { Navbar } from '../components/Navbar';
 
 export const ProtectedLayout = () => {
   return (
