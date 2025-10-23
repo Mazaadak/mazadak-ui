@@ -44,3 +44,19 @@ export const useCategories = () => {
     queryFn: () => productAPI.getCategories(),
   });
 }
+
+
+export const useCreateListing = (options = {}) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => productAPI.createListing(data),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries(queryKeys.products.products);
+      // TODO should invalidate auctions and inventories also
+      options.onSuccess?.(data, variables, context);
+    },
+    onError: (error, variables, context) => {
+      options.onError?.(error, variables, context);
+    },
+  });
+}

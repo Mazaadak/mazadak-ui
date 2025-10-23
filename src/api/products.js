@@ -9,4 +9,6 @@ export const productAPI = {
     createProduct: (data) => apiClient.post("/products", { type: "AUCTION", price: 0, ...data }), // TODO: make it none
   
     getCategories: () => apiClient.get("/categories"),
+
+    createListing: (data) => apiClient.post("/products/listings", data),
 }

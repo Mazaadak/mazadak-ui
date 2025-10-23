@@ -20,11 +20,6 @@ const ProductModal = ({ open, onClose, onSelect }) => {
     product.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const calculateAverageRating = (ratings) => {
-    if (ratings.length === 0) return 0;
-    return ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length;
-  };
-
   const handleSelect = () => {
     if (selectedProductId) onSelect(selectedProductId);
   };
