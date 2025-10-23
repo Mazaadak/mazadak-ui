@@ -7,6 +7,7 @@ import { Search, Star, Package } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useProducts } from '@/hooks/useProducts';
 import { useAuth } from '../../contexts/AuthContext';
+import ProductCard from './ProductCard';
 
 const ProductModal = ({ open, onClose, onSelect }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,89 +61,14 @@ const ProductModal = ({ open, onClose, onSelect }) => {
                   <p>No products found</p>
                 </div>
               ) : (
-                filteredProducts?.map((product) => {
-                  const avgRating = calculateAverageRating(product.ratings);
-                  const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
-                  const isSelected = selectedProductId === product.productId;
-
-                  return (
-                    <div
-                      key={product.productId}
-                      onClick={() =>
-                        setSelectedProductId(product.productId === selectedProductId ? null : product.productId)
-                      }
-                      className={`flex gap-4 p-4 border rounded-lg cursor-pointer transition-all select-none
-                        ${isSelected
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 dark:border-blue-400 shadow-md'
-                          : 'border-border hover:border-muted hover:shadow-sm'
-                        }`}
-                    >
-                      {/* Product Image */}
-                      <div className="flex-shrink-0">
-                        {primaryImage ? (
-                          <img
-                            src={primaryImage.imageUri}
-                            alt={product.title}
-                            className="w-24 h-24 object-cover rounded-md"
-                          />
-                        ) : (
-                          <div className="w-24 h-24 bg-muted rounded-md flex items-center justify-center">
-                            <Package className="w-8 h-8 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Product Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-lg truncate">{product.title}</h3>
-
-                          {/* Status Badge */}
-                          <Badge
-                            className={`text-xs font-medium border-none 
-                              ${product.status === 'INACTIVE'
-                                ? 'bg-gray-500/20 text-gray-600 dark:bg-gray-400/20 dark:text-gray-300'
-                                : 'bg-blue-100 text-blue-700 dark:bg-blue-400/20 dark:text-blue-300'
-                              }`}
-                          >
-                            {product.status}
-                          </Badge>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                          {product.description}
-                        </p>
-
-                        {/* Price, Rating, Category */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <span className="text-lg font-bold">
-                              ${product.price.toFixed(2)}
-                            </span>
-
-                            {product.ratings.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({product.ratings.length})
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Category Badge */}
-                          <Badge
-                            variant="outline"
-                            className="text-xs border-border text-muted-foreground dark:border-gray-600 dark:text-gray-300"
-                          >
-                            {product.category.name}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                filteredProducts.map(product => (
+                  <ProductCard
+                    key={product.productId}
+                    product={product}
+                    onSelect={setSelectedProductId}
+                    isSelected={selectedProductId === product.productId}
+                  />
+                ))
               )}
             </div>
           </ScrollArea>

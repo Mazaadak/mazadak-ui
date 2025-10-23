@@ -32,6 +32,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useState } from 'react';
+import ProductCard from '../components/CreateItem/ProductCard';
+import CreateAuctionForm from '../components/CreateItem/CreateAuctionForm';
 
 export const CreateItemPage = () => {
   const [step, setStep] = useState(1);
