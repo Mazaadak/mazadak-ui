@@ -60,3 +60,12 @@ export const useCreateListing = (options = {}) => {
     },
   });
 }
+
+export const useListingStatus = (productId) => {
+  return useQuery({
+    queryKey: queryKeys.products.listingStatus(productId),
+    queryFn: () => productAPI.getListingStatus(productId),
+    enabled: !!productId,
+    refetchInterval: 2000, // Poll every 2 seconds
+  });
+}

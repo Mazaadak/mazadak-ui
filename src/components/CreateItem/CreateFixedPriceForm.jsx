@@ -7,8 +7,8 @@ import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from 
 import { Button } from "../ui/button";
 
 const fixedPriceFormSchema = z.object({
-  price: z.number().min(0, "Price must be at least 0"),
-  quantity: z.number().min(1, "Quantity must be at least 1"),
+  price: z.coerce.number().min(0, "Price must be at least 0"),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
 });
 
 const CreateFixedPriceForm = ({ onSubmit }) => {
@@ -35,7 +35,7 @@ const CreateFixedPriceForm = ({ onSubmit }) => {
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="font-medium">Price</label>
-            <Controller name="price" control={control} render={({ field }) => <Input step="0.01" placeholder="Enter price" {...field} />} />
+            <Controller name="price" control={control} render={({ field }) => <Input type="number" placeholder="Enter price" {...field} />} />
             {errors.price && <p className="text-sm text-red-600">{errors.price.message}</p>}
           </div>
           <div className="flex flex-col gap-1">

@@ -31,11 +31,6 @@ export const Navbar = () => {
           {/* Navigation links - available to ALL users */}
           <div className="hidden md:flex items-center gap-1">
             <Button variant="ghost" size="sm">
-              <Link to="/auctions" className="text-sm font-medium hover:text-primary transition-colors">
-                Auctions
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm">
               <Link to="/listings" className="text-sm font-medium hover:text-primary transition-colors">
                 Listings
               </Link>
@@ -63,11 +58,6 @@ export const Navbar = () => {
                 <Link to="/listings/me">
                   <Button variant="ghost" size="sm" className="hidden sm:flex">
                     My Listings
-                  </Button>
-                </Link>
-                <Link to="/auctions/me">
-                  <Button variant="ghost" size="sm" className="hidden sm:flex">
-                    My Auctions
                   </Button>
                 </Link>
                 <Link to="/create-item">
