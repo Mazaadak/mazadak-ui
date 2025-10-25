@@ -38,7 +38,6 @@ function App() {
                 <Route path="/verify" element={<VerifyPage/>} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
                 <Route path="/reset-password" element={<ResetPasswordPage/>} />
-                <Route path="/auctions" element={<AuctionsPage/>} />
                 <Route path="/cart" element={<CartPage/>} />
                 <Route path="/listings" element={<ListingsPage/>} />
               </Route>
