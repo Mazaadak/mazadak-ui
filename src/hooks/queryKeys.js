@@ -15,5 +15,9 @@ export const queryKeys = {
     categories: {
         categories: ['categories'],
         category: (id) => ['categories', id],
+    },
+    cart: {
+        cart: ['cart'],
+        cartItem: (id) => ['cart','item', id],
     }
 }
