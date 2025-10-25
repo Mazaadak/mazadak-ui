@@ -11,8 +11,8 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.jsx";
 import { ProtectedLayout } from "./layouts/ProtectedLayout.jsx";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { Query, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import AuctionsPage from "./pages/AuctionsPage.jsx";
 import { CreateItemPage } from "./pages/CreateItemPage.jsx";
+import ListingsPage from "./pages/ListingsPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +37,7 @@ function App() {
                 <Route path="/verify" element={<VerifyPage/>} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
                 <Route path="/reset-password" element={<ResetPasswordPage/>} />
-                <Route path="/auctions" element={<AuctionsPage/>} />
+                <Route path="/listings" element={<ListingsPage/>} />
               </Route>
               <Route element={<ProtectedLayout/>}>
                 <Route path="/create-item" element={<CreateItemPage/>} />
