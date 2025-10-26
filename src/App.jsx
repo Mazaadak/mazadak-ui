@@ -15,6 +15,7 @@ import { CreateItemPage } from "./pages/CreateItemPage.jsx";
 import { CartPage } from "./pages/CartPage.jsx";
 import ListingsPage from "./pages/ListingsPage.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import { MyListingsPage } from "./pages/MyListings.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/cart" element={<CartPage/>} />
                 <Route path="/listings" element={<ListingsPage/>} />
                 <Route path="/products/:productId" element={<ProductDetails/>} />
+                  <Route path="/my-listings" element={<MyListingsPage/>} /> 
               </Route>
               <Route element={<ProtectedLayout/>}>
                 <Route path="/create-item" element={<CreateItemPage/>} />

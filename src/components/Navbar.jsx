@@ -55,7 +55,7 @@ export const Navbar = () => {
                     Cart
                   </Button>
                 </Link>
-                <Link to="/listings/me">
+                <Link to="/my-listings">
                   <Button variant="ghost" size="sm" className="hidden sm:flex">
                     My Listings
                   </Button>

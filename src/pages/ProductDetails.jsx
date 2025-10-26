@@ -10,8 +10,7 @@ import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle } from "luci
 import { useState } from "react";
 
 const ProductDetails = () => {
-    // change productId to useParams when listing page is ready
-  const  productId  = "2a95ec75-74df-4d82-9f35-77b14c8c8c93";
+  const  productId  = useParams().productId;
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
