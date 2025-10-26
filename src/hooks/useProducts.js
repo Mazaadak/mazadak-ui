@@ -18,6 +18,47 @@ export const useProduct = (productId) => {
   });
 }
 
+export const useUserProducts = () => {
+  return useQuery({
+    queryKey: queryKeys.products.userProducts,
+    queryFn: () => productAPI.getUserProducts(),
+  });
+}
+
+export const useUpdateProduct = (options = {}) => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ productId, data }) =>
+      productAPI.updateProduct(productId, data),
+
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries(queryKeys.products.products);
+      queryClient.setQueryData(queryKeys.products.product(data.id), data);
+
+      options.onSuccess?.(data, variables, context);
+    },
+
+    onError: (error, variables, context) => {
+      options.onError?.(error, variables, context);
+    },
+  });
+}
+
+// Delete product
+export const useDeleteProduct = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (productId) => 
+      productAPI.deleteProduct(productId),
+    
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.userProducts });
+    },
+  });
+};
+
 export const useCreateProduct = (options = {}) => {
   const queryClient = useQueryClient();
 
