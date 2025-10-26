@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
 
 // Dummy data generation
 const generateDummyAuctions = () => {
@@ -79,6 +80,7 @@ const generateDummyProducts = () => {
 };
 
 const ListingsPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('auctions');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('endTime');
@@ -697,7 +699,7 @@ const ListingsPage = () => {
                             className="w-full h-8 text-xs" 
                             size="sm"
                             variant="outline"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/products/${product.productId}`); }}
                           >
                             <Eye className="h-3 w-3 mr-1" />
                             View Details

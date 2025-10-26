@@ -7,6 +7,7 @@ export const queryKeys = {
         products: ['products'],
         product: (id) => ['products', id],
         listingStatus: (id) => ['products', id, 'listingStatus'],
+        userProducts: ['products', 'my-listings'],
     },
     users: {
         user: (id) => ['users', id],
@@ -15,5 +16,13 @@ export const queryKeys = {
     categories: {
         categories: ['categories'],
         category: (id) => ['categories', id],
+    },
+    cart: {
+        cart: ['cart'],
+        cartItem: (id) => ['cart','item', id],
+    },
+    inventory: {
+        item: (id) => ['inventory', id],
     }
+
 }

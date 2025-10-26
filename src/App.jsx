@@ -12,7 +12,10 @@ import { ProtectedLayout } from "./layouts/ProtectedLayout.jsx";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage.jsx";
 import { Query, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CreateItemPage } from "./pages/CreateItemPage.jsx";
+import { CartPage } from "./pages/CartPage.jsx";
 import ListingsPage from "./pages/ListingsPage.jsx";
+import ProductDetails from "./pages/ProductDetails.jsx";
+import { MyListingsPage } from "./pages/MyListings.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,9 +41,12 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
                 <Route path="/reset-password" element={<ResetPasswordPage/>} />
                 <Route path="/listings" element={<ListingsPage/>} />
+                <Route path="/products/:productId" element={<ProductDetails/>} />
               </Route>
               <Route element={<ProtectedLayout/>}>
                 <Route path="/create-item" element={<CreateItemPage/>} />
+                <Route path="/my-listings" element={<MyListingsPage/>} /> 
+                <Route path="/cart" element={<CartPage/>} />
               </Route>
             </Routes>
           </ThemeProvider>
