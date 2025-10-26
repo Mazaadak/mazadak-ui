@@ -1,11 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
-import { Settings, User, Bell, Shield, Palette } from 'lucide-react';
+import { Settings, User, Bell, Shield, Palette, MapPin, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export const SettingsPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -109,6 +111,32 @@ export const SettingsPage = () => {
             <p className="text-sm text-muted-foreground">
               Appearance settings coming soon...
             </p>
+          </CardContent>
+        </Card>
+
+        {/* Address Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Address Management
+            </CardTitle>
+            <CardDescription>
+              Manage your delivery addresses
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between"
+              onClick={() => navigate('/address')}
+            >
+              <span className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                My Addresses
+              </span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
       </div>
