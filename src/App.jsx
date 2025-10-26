@@ -42,6 +42,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage/>} />
                 <Route path="/listings" element={<ListingsPage/>} />
                 <Route path="/products/:productId" element={<ProductDetails/>} />
+                <Route path="/auctions/:auctionId" element={<AuctionDetails/>} />
               </Route>
               <Route element={<ProtectedLayout/>}>
                 <Route path="/create-item" element={<CreateItemPage/>} />

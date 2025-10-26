@@ -1,0 +1,334 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuction } from '../hooks/useAuctions';
+import { useProduct } from '../hooks/useProducts';
+import { useUser } from '../hooks/useUsers';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Separator } from '../components/ui/separator';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { AuctionCountdown } from '../components/auction/AuctionCountdown';
+import { BidForm } from '../components/auction/BidForm';
+import { ProxyBidForm } from '../components/auction/ProxyBidForm';
+import { BidHistory } from '../components/auction/BidHistory';
+import { 
+  ArrowLeft, 
+  Package, 
+  AlertCircle, 
+  User, 
+  Clock,
+  TrendingUp,
+  DollarSign,
+  Gavel,
+  Info
+} from 'lucide-react';
+import { 
+  canUserBid, 
+  isAuctionActive, 
+  formatCurrency, 
+  formatEgyptTime,
+  getAuctionStatusVariant 
+} from '../lib/auctionUtils';
+import { useState } from 'react';
+
+const AuctionDetails = () => {
+  const { auctionId } = useParams();
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const [selectedImage, setSelectedImage] = useState(0);
+
+  // Fetch auction with polling enabled
+  const { data: auction, isLoading: isLoadingAuction, error: auctionError } = useAuction(
+    auctionId,
+    { enablePolling: true }
+  );
+
+  // Fetch product details
+  const { data: product, isLoading: isLoadingProduct } = useProduct(auction?.productId);
+
+  // Fetch seller details
+  const { data: seller, isLoading: isLoadingSeller } = useUser(auction?.sellerId);
+
+  const isLoading = isLoadingAuction || isLoadingProduct;
+  const userCanBid = canUserBid(auction, user?.userId);
+  const isOwner = user?.userId === auction?.sellerId;
+  const auctionActive = isAuctionActive(auction);
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading auction details...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (auctionError || !auction) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Card className="border-destructive">
+          <CardContent className="pt-6 text-center space-y-4">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <div>
+              <h3 className="font-semibold text-lg">Error Loading Auction</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                {auctionError?.message || 'Auction not found'}
+              </p>
+            </div>
+            <Button onClick={() => navigate('/listings')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Listings
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const hasImages = product?.images && product.images.length > 0;
+  const displayImage = hasImages ? product.images[selectedImage]?.imageUri : null;
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Back Button */}
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate(-1)}
+        className="mb-6"
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back
+      </Button>
+
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Left Column - Product Images */}
+        <div className="space-y-4">
+          <Card className="overflow-hidden">
+            <div className="aspect-square relative bg-muted">
+              {displayImage ? (
+                <img 
+                  src={displayImage}
+                  alt={auction.title}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <Package className="h-24 w-24 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+          </Card>
+
+          {/* Thumbnail Grid */}
+          {hasImages && product.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-2">
+              {product.images.map((image, idx) => (
+                <button
+                  key={image.imageId}
+                  onClick={() => setSelectedImage(idx)}
+                  className={`aspect-square relative bg-muted rounded-lg overflow-hidden border-2 transition-colors ${
+                    selectedImage === idx
+                      ? 'border-primary'
+                      : 'border-transparent hover:border-muted-foreground/50'
+                  }`}
+                >
+                  <img 
+                    src={image.imageUri}
+                    alt={`${auction.title} view ${idx + 1}`}
+                    className="object-cover w-full h-full"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Product Description */}
+          {product && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {product.category && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Category</p>
+                    <Badge variant="secondary">{product.category.name}</Badge>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Description</p>
+                  <p className="text-sm leading-relaxed">{product.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Auction Info & Bidding */}
+        <div className="space-y-6">
+          {/* Auction Header */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Badge variant={getAuctionStatusVariant(auction.status)}>
+                {auction.status}
+              </Badge>
+              <AuctionCountdown 
+                endTime={auction.endTime} 
+                status={auction.status}
+              />
+            </div>
+            
+            <h1 className="text-3xl font-bold mb-4">{auction.title}</h1>
+
+            {/* Seller Info */}
+            {seller && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Avatar>
+                  <AvatarImage src={seller.avatar} alt={seller.username} />
+                  <AvatarFallback>
+                    {seller.username?.substring(0, 2).toUpperCase() || <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm text-muted-foreground">Sold by</p>
+                  <p className="font-medium">{seller.username || seller.email}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Current Bid Info */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Gavel className="h-4 w-4" />
+                    Current Bid
+                  </p>
+                  <p className="text-3xl font-bold mt-1">
+                    {auction.highestBidPlaced
+                      ? formatCurrency(auction.highestBidPlaced.amount)
+                      : formatCurrency(auction.startingPrice)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    Starting Bid
+                  </p>
+                  <p className="text-xl font-semibold mt-1">
+                    {formatCurrency(auction.startingPrice)}
+                  </p>
+                </div>
+              </div>
+              
+              <Separator className="my-4" />
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Bid Increment</p>
+                  <p className="font-medium">{formatCurrency(auction.bidIncrement)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Reserve Price</p>
+                  <p className="font-medium">
+                    {auction.reservePrice ? formatCurrency(auction.reservePrice) : 'None'}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Auction Times */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    Start Time
+                  </span>
+                  <span className="font-medium">
+                    {formatEgyptTime(auction.startTime)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    End Time
+                  </span>
+                  <span className="font-medium">
+                    {formatEgyptTime(auction.endTime)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bidding Section */}
+          {!isAuthenticated && auctionActive && (
+            <Card className="border-primary">
+              <CardContent className="pt-6 text-center space-y-4">
+                <Info className="h-12 w-12 text-primary mx-auto" />
+                <div>
+                  <h3 className="font-semibold text-lg">Sign in to Bid</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    You must be logged in to place bids
+                  </p>
+                </div>
+                <Button onClick={() => navigate('/login')} className="w-full">
+                  Sign In
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAuthenticated && isOwner && (
+            <Card className="border-blue-500/50 bg-blue-500/5">
+              <CardContent className="pt-6 text-center">
+                <Info className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  This is your auction. You cannot place bids on your own items.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {isAuthenticated && userCanBid && (
+            <Tabs defaultValue="manual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="manual">Manual Bid</TabsTrigger>
+                <TabsTrigger value="proxy">Auto Bid</TabsTrigger>
+              </TabsList>
+              <TabsContent value="manual">
+                <BidForm auction={auction} userId={user.userId} />
+              </TabsContent>
+              <TabsContent value="proxy">
+                <ProxyBidForm auction={auction} userId={user.userId} />
+              </TabsContent>
+            </Tabs>
+          )}
+        </div>
+      </div>
+
+      {/* Bid History Section */}
+      <div className="mt-8">
+        <BidHistory 
+          auctionId={auction.id} 
+          highestBidId={auction.highestBidPlaced?.id}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default AuctionDetails;
