@@ -15,27 +15,27 @@ import CreateAuctionForm from "../components/CreateItem/CreateAuctionForm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProductCard from "../components/CreateItem/ProductCard";
 import { useCreateListing, useListingStatus, useProduct } from "../hooks/useProducts";
+import { v4 as uuidv4 } from "uuid";
+import { productAPI } from "../api/products";
 
 export const CreateItemPage = () => {
   const [step, setStep] = useState(0);
   const [productId, setProductId] = useState(null);
   const [type, setType] = useState(null);
   const [listingStatus, setListingStatus] = useState("idle"); // 'idle' | 'creating' | 'success' | 'failed'
+  const [createdListingId, setCreatedListingId] = useState(null);
   
   const { mutate } = useCreateListing();
   const { user } = useAuth();
   const userId = user?.userId;
   const navigate = useNavigate();
+  const idempotencyKeyRef = useRef(null);
 
-  // only enable polling when we're creating and haven't reached a final state
-  const shouldPoll = listingStatus === "creating";
-  // const { data, isLoading, isError } = useListingStatus(productId, {
-  //   enabled: shouldPoll && !!productId,
-  //   refetchInterval: shouldPoll ? 2000 : false, // poll every 2 seconds when creating
-  // }); TODO: figure out after handling idempotency
+  // Calculate shouldPoll based on current state
+  const shouldPoll = listingStatus === "creating" && !!createdListingId && !!idempotencyKeyRef.current;
 
   const handleProductSelected = (id) => {
     console.log("Product selected:", id);
@@ -57,8 +57,11 @@ export const CreateItemPage = () => {
 
   const onSubmit = async (data) => {
     setStep(3);
-    setListingStatus("creating");
-    console.log("Create Item Data:", { productId, userId, type, ...data });
+    
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = uuidv4();
+      console.log("Generated Idempotency-Key:", idempotencyKeyRef.current);
+    }
 
     const payload = {
       productId,
@@ -84,24 +87,74 @@ export const CreateItemPage = () => {
           : null,
     };
 
-    mutate(payload);
+    console.log("Create Item Data:", { productId, userId, type, ...data });
+    
+    mutate(
+      { data: payload, idempotencyKey: idempotencyKeyRef.current },
+      {
+        onSuccess: (responseData) => {
+          console.log("Listing creation request sent: ", responseData);
+          
+          // Store the created listing ID from the response
+          if (responseData?.id) {
+            setCreatedListingId(responseData.id);
+          } else {
+            setCreatedListingId(productId);
+          }
+          
+          // Start polling for status
+          setListingStatus("creating");
+        },
+        onError: (error) => {
+          console.error("Error creating listing:", error);
+          setListingStatus("failed");
+          // Clear the ref to prevent any future polling
+          idempotencyKeyRef.current = null;
+        }
+      }
+    );
   };
 
-  // Monitor listing status changes
-  // useEffect(() => {
-  //   if (!data || listingStatus !== "creating") return;
+  useEffect(() => {
+    let pollingInterval;
 
-  //   console.log("Status update:", data);
+    const pollStatus = async () => {
+      console.log("Polling listing status...");
+      if (!shouldPoll) {
+        console.log("Not polling, current status:", listingStatus);
+        return;
+      }
+      
+      try {
+        const status = await productAPI.getListingStatus(productId, idempotencyKeyRef.current);
+        console.log("Polled status:", status);
+        if (status.status === "COMPLETED") {
+          console.log("Listing completed, stopping polling");
+          setListingStatus("success");
+          idempotencyKeyRef.current = null;
+        } else if (status.status === "FAILED") {
+          console.log("Listing failed, stopping polling");
+          setListingStatus("failed");
+          idempotencyKeyRef.current = null;
+        }
+      } catch (error) {
+        console.error("Error polling status:", error);
+      }
+    };
 
-  //   if (data === "ACTIVE") {
-  //     setListingStatus("success");
-  //   } else if (data === "FAILED") {
-  //     setListingStatus("failed");
-  //   }
-  // }, [data, listingStatus]);
+    if (shouldPoll) {
+      pollingInterval = setInterval(pollStatus, 2000);
+    }
+
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [shouldPoll, createdListingId, productId, listingStatus]);
+
 
   const renderStepContent = () => {
-    // Steps 0-2: Form steps
     if (step === 0) {
       return <ProductSelectionStep onSelect={handleProductSelected} onCreate={handleProductCreated} />;
     }
@@ -119,7 +172,6 @@ export const CreateItemPage = () => {
       }
     }
 
-    // Step 3+: Status steps
     if (step === 3) {
       return (
         <CardContent className="p-6">
@@ -131,9 +183,6 @@ export const CreateItemPage = () => {
                 </div>
                 <h2 className="text-lg font-semibold">Creating Listing...</h2>
                 <p className="text-muted-foreground">Please wait while we create your listing.</p>
-                {/* {isError && (
-                  <p className="text-destructive text-sm">Error checking status. Retrying...</p>
-                )} */}
               </>
             )}
 
@@ -155,6 +204,7 @@ export const CreateItemPage = () => {
                     setProductId(null);
                     setType(null);
                     setListingStatus("idle");
+                    setCreatedListingId(null);
                   }}>
                     Create Another
                   </Button>
@@ -177,6 +227,7 @@ export const CreateItemPage = () => {
                   <Button onClick={() => {
                     setStep(2);
                     setListingStatus("idle");
+                    setCreatedListingId(null);
                   }}>
                     Try Again
                   </Button>
@@ -185,6 +236,7 @@ export const CreateItemPage = () => {
                     setProductId(null);
                     setType(null);
                     setListingStatus("idle");
+                    setCreatedListingId(null);
                   }}>
                     Start Over
                   </Button>
@@ -203,7 +255,7 @@ export const CreateItemPage = () => {
     if (step === 0) return 0;
     if (step === 1) return 33;
     if (step === 2) return 66;
-    if (step === 3 && listingStatus === "success") return 100;
+    if (step === 3 && listingStatus !== "idle" && listingStatus !== "creating") return 100;
     return 66;
   };
 

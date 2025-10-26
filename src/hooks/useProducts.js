@@ -22,8 +22,8 @@ export const useCreateProduct = (options = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data) =>
-      productAPI.createProduct(data),
+    mutationFn: ({ data, idempotencyKey }) =>
+      productAPI.createProduct(data, idempotencyKey),
 
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries(queryKeys.products.products);
@@ -49,7 +49,7 @@ export const useCategories = () => {
 export const useCreateListing = (options = {}) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data) => productAPI.createListing(data),
+    mutationFn: ({ data, idempotencyKey }) => productAPI.createListing(data, idempotencyKey),
     onSuccess: (data, variables, context) => {
       queryClient.invalidateQueries(queryKeys.products.products);
       // TODO should invalidate auctions and inventories also
@@ -61,10 +61,10 @@ export const useCreateListing = (options = {}) => {
   });
 }
 
-export const useListingStatus = (productId) => {
+export const useListingStatus = (productId, idempotencyKey) => {
   return useQuery({
     queryKey: queryKeys.products.listingStatus(productId),
-    queryFn: () => productAPI.getListingStatus(productId),
+    queryFn: () => productAPI.getListingStatus(productId, idempotencyKey),
     enabled: !!productId,
     refetchInterval: 2000, // Poll every 2 seconds
   });

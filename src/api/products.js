@@ -6,12 +6,12 @@ export const productAPI = {
 
     getProduct: (id) => apiClient.get(`/products/${id}`),
 
-    createProduct: (data) => apiClient.post("/products", { type: "NONE", price: 0, ...data }),
+    createProduct: (data, idempotencyKey) => apiClient.post("/products", { type: "NONE", price: 0, ...data }, { headers: { "Idempotency-Key": idempotencyKey } }),
   
     getCategories: () => apiClient.get("/categories"),
 
-    createListing: (data) => apiClient.post("/products/listings", data),
+    createListing: (data, idempotencyKey) => apiClient.post("/products/listings", data, { headers: { "Idempotency-Key": idempotencyKey } }),
 
-    getListingStatus: (id) => apiClient.get(`/products/listings/${id}/status`),
+    getListingStatus: (id, idempotencyKey) => apiClient.get(`/products/listings/${id}/status`, { headers: { "Idempotency-Key": idempotencyKey } }),
     
 }

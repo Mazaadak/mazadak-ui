@@ -133,7 +133,6 @@ const CreateAuctionForm = ({ onSubmit }) => {
 
     console.log("Form submitted:", submissionData);
     onSubmit(submissionData);
-    alert("Auction created successfully!");
   };
 
   // Handler for date changes that also triggers validation

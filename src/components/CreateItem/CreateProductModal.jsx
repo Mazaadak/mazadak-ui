@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { v4 as uuidv4 } from "uuid";
+
 
 const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -33,9 +35,12 @@ const CreateProductModal = ({ open, onCreate, onClose }) => {
     },
   });
 
+  const idempotencyKeyRef = useRef(null);
+
   const { mutate: createProduct, isPending } = useCreateProduct({
     onSuccess: (response) => {
       console.log("Product created successfully:", response);
+      idempotencyKeyRef.current = null;
       reset();
       onCreate(response.productId);
       onClose();
@@ -52,12 +57,22 @@ const CreateProductModal = ({ open, onCreate, onClose }) => {
   useEffect(() => {
     if (!open) {
       reset();
+      idempotencyKeyRef.current = null;
     }
   }, [open, reset]);
 
   const onSubmit = (data) => {
     console.log("Submitting form with data:", data);
-    createProduct(data);
+
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = uuidv4();
+      console.log("Generated Idempotency-Key:", idempotencyKeyRef.current);
+    }
+
+    createProduct({ 
+      data, 
+      idempotencyKey: idempotencyKeyRef.current 
+    });
   };
 
   return (

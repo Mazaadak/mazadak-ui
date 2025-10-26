@@ -510,7 +510,7 @@ const ListingsPage = () => {
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="fixed">
-                Buy Now
+                Fixed Price 
                 <Badge variant="secondary" className="ml-2">
                   {filteredProducts.length}
                 </Badge>

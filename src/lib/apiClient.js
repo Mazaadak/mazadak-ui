@@ -28,7 +28,6 @@ apiClient.interceptors.request.use(
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
-    config.headers['Idempotency-Key'] = crypto.randomUUID();
     return config;
   },
   (error) => Promise.reject(error)
