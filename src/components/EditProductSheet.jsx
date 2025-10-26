@@ -15,7 +15,7 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
     description: '',
     price: '',
     quantity: '',
-    status: 'ACTIVE', // Add status to form data
+    status: 'ACTIVE', 
   });
 
   const updateProduct = useUpdateProduct();
@@ -28,7 +28,7 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
         description: product.description || '',
         price: product.price || '',
         quantity: inventory?.totalQuantity - inventory?.reservedQuantity || 0,
-        status: product.status || 'ACTIVE', // Set initial status
+        status: product.status || 'ACTIVE',
       });
     }
   }, [product, inventory]);
