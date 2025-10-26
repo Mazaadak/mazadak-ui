@@ -23,6 +23,10 @@ export const queryKeys = {
     },
     inventory: {
         item: (id) => ['inventory', id],
+    },
+    addresses: {
+        addresses: ['addresses'],
+        address: (id) => ['addresses', id],
     }
 
 }
