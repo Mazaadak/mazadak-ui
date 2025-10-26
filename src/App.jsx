@@ -15,6 +15,7 @@ import { CreateItemPage } from "./pages/CreateItemPage.jsx";
 import { CartPage } from "./pages/CartPage.jsx";
 import ListingsPage from "./pages/ListingsPage.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import AuctionDetails from "./pages/AuctionDetails.jsx";
 import { MyListingsPage } from "./pages/MyListings.jsx";
 
 const queryClient = new QueryClient({
