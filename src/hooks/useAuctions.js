@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { auctionAPI } from '../api/auctions';
 import { queryKeys } from './queryKeys';
 
-export const useAuction = (auctionId) => {
+export const useAuction = (auctionId, options = {}) => {
   return useQuery({
     queryKey: queryKeys.auctions.auction(auctionId),
     queryFn: () => auctionAPI.getAuction(auctionId),
     enabled: !!auctionId,
-    // refetch every 5 seconds for live auction updates
-    refetchInterval: 5000,
+    // refetch every 2 seconds for live auction updates
+    refetchInterval: options.enablePolling ? 2000 : false,
   });
 };
 
@@ -48,11 +48,11 @@ export const useCancelAuction = () => {
   });
 };
 
-export const usePauseAuction = () => {
+export const useResumeAuction = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (auctionId) => auctionAPI.pauseAuction(auctionId),
+    mutationFn: (auctionId) => auctionAPI.resumeAuction(auctionId),
     onSuccess: (data, auctionId) => {
       queryClient.invalidateQueries(queryKeys.auctions.auction(auctionId));
       queryClient.invalidateQueries(queryKeys.auctions.auctions);
@@ -60,11 +60,107 @@ export const usePauseAuction = () => {
   });
 };
 
-export const useResumeAuction = () => {
+// ==================== BID HOOKS ====================
+
+export const usePlaceBid = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (auctionId) => auctionAPI.resumeAuction(auctionId),
+    mutationFn: ({ auctionId, bidData, idempotencyKey }) => 
+      auctionAPI.placeBid(auctionId, bidData, idempotencyKey),
+    onSuccess: (data, variables) => {
+      // Invalidate auction to refresh highest bid
+      queryClient.invalidateQueries(queryKeys.auctions.auction(variables.auctionId));
+      // Invalidate bids list
+      queryClient.invalidateQueries(queryKeys.auctions.bids(variables.auctionId));
+      // Invalidate highest bid
+      queryClient.invalidateQueries(queryKeys.auctions.highestBid(variables.auctionId));
+      // Invalidate bidder's bids
+      queryClient.invalidateQueries(queryKeys.auctions.bidderBids(variables.bidData.bidderId));
+    },
+  });
+};
+
+export const useBids = (auctionId, params = {}, options = {}) => {
+  return useQuery({
+    queryKey: [...queryKeys.auctions.bids(auctionId), params],
+    queryFn: () => auctionAPI.getBids(auctionId, params),
+    enabled: !!auctionId,
+    // Poll every 2 seconds for live bid updates
+    refetchInterval: options.enablePolling ? 2000 : false,
+    keepPreviousData: true,
+  });
+};
+
+export const useHighestBid = (auctionId, options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.auctions.highestBid(auctionId),
+    queryFn: () => auctionAPI.getHighestBid(auctionId),
+    enabled: !!auctionId,
+    // Poll every 2 seconds for live highest bid updates
+    refetchInterval: options.enablePolling ? 2000 : false,
+  });
+};
+
+export const useBidderBids = (bidderId, params = {}) => {
+  return useQuery({
+    queryKey: [...queryKeys.auctions.bidderBids(bidderId), params],
+    queryFn: () => auctionAPI.getBidderBids(bidderId, params),
+    enabled: !!bidderId,
+    keepPreviousData: true,
+  });
+};
+
+// ==================== PROXY BID HOOKS ====================
+
+export const useCreateOrUpdateProxyBid = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ auctionId, bidderId, proxyBidData }) => 
+      auctionAPI.createOrUpdateProxyBid(auctionId, bidderId, proxyBidData),
+    onSuccess: (data, variables) => {
+      // Invalidate proxy bid
+      queryClient.invalidateQueries(
+        queryKeys.auctions.proxyBid(variables.auctionId, variables.bidderId)
+      );
+      // Invalidate auction (might affect current bid)
+      queryClient.invalidateQueries(queryKeys.auctions.auction(variables.auctionId));
+      // Invalidate bids list
+      queryClient.invalidateQueries(queryKeys.auctions.bids(variables.auctionId));
+    },
+  });
+};
+
+export const useProxyBid = (auctionId, bidderId) => {
+  return useQuery({
+    queryKey: queryKeys.auctions.proxyBid(auctionId, bidderId),
+    queryFn: () => auctionAPI.getProxyBid(auctionId, bidderId),
+    enabled: !!auctionId && !!bidderId,
+    retry: false, // Don't retry if proxy bid doesn't exist
+  });
+};
+
+export const useDeleteProxyBid = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ auctionId, bidderId }) => 
+      auctionAPI.deleteProxyBid(auctionId, bidderId),
+    onSuccess: (data, variables) => {
+      // Invalidate proxy bid
+      queryClient.invalidateQueries(
+        queryKeys.auctions.proxyBid(variables.auctionId, variables.bidderId)
+      );
+    },
+  });
+};
+
+export const usePauseAuction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (auctionId) => auctionAPI.pauseAuction(auctionId),
     onSuccess: (data, auctionId) => {
       queryClient.invalidateQueries(queryKeys.auctions.auction(auctionId));
       queryClient.invalidateQueries(queryKeys.auctions.auctions);
