@@ -1,13 +1,38 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
-import { Settings, User, Bell, Shield, Palette, MapPin, ChevronRight } from 'lucide-react';
+import { Settings, User, MapPin, ChevronRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { UpdateEmailDialog } from '../components/UpdateEmailDialog';
+import { UpdateNameDialog } from '../components/UpdateNameDialog';
+import { UpdateBirthdateDialog } from '../components/UpdateBirthdateDialog';
+import { useState } from 'react';
+import { format } from 'date-fns';
 
 export const SettingsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
+  const [isBirthdateDialogOpen, setIsBirthdateDialogOpen] = useState(false);
+
+  // Parse name from user object (backend returns single "name" field)
+  const parseName = (fullName) => {
+    if (!fullName) return { firstName: '', lastName: '' };
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    const firstName = parts[0];
+    const lastName = parts.slice(1).join(' ');
+    return { firstName, lastName };
+  };
+
+  const { firstName, lastName } = parseName(user?.name);
+
+  // Debug: log user object
+  console.log('SettingsPage user object:', user);
+  console.log('parsed firstName:', firstName);
+  console.log('parsed lastName:', lastName);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -16,9 +41,15 @@ export const SettingsPage = () => {
           <Settings className="h-8 w-8" />
           Settings
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your account settings and preferences
-        </p>
+        {user?.name ? (
+          <p className="text-muted-foreground mt-2 text-lg">
+            {user.name}
+          </p>
+        ) : (
+          <p className="text-muted-foreground mt-2">
+            Manage your account settings and preferences
+          </p>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -38,10 +69,30 @@ export const SettingsPage = () => {
               <div>
                 <p className="font-medium">Name</p>
                 <p className="text-sm text-muted-foreground">
-                  {user?.firstName} {user?.lastName}
+                  {user?.name || 'Not provided'}
                 </p>
               </div>
-              <Button variant="outline" size="sm" disabled>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsNameDialogOpen(true)}
+              >
+                Edit
+              </Button>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Birth Date</p>
+                <p className="text-sm text-muted-foreground">
+                  {user?.birthDate ? format(new Date(user.birthDate), 'PPP') : 'Not provided'}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsBirthdateDialogOpen(true)}
+              >
                 Edit
               </Button>
             </div>
@@ -53,64 +104,14 @@ export const SettingsPage = () => {
                   {user?.email || 'Not provided'}
                 </p>
               </div>
-              <Button variant="outline" size="sm" disabled>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsEmailDialogOpen(true)}
+              >
                 Edit
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Notifications Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
-            </CardTitle>
-            <CardDescription>
-              Manage your notification preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Notification settings coming soon...
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Privacy Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Privacy
-            </CardTitle>
-            <CardDescription>
-              Control your privacy settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Privacy settings coming soon...
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Appearance Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Appearance
-            </CardTitle>
-            <CardDescription>
-              Customize your app appearance
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Appearance settings coming soon...
-            </p>
           </CardContent>
         </Card>
 
@@ -140,6 +141,21 @@ export const SettingsPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      <UpdateEmailDialog 
+        open={isEmailDialogOpen} 
+        onOpenChange={setIsEmailDialogOpen} 
+      />
+      
+      <UpdateNameDialog 
+        open={isNameDialogOpen} 
+        onOpenChange={setIsNameDialogOpen} 
+      />
+      
+      <UpdateBirthdateDialog 
+        open={isBirthdateDialogOpen} 
+        onOpenChange={setIsBirthdateDialogOpen} 
+      />
     </div>
   );
 };
