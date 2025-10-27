@@ -15,7 +15,7 @@ import {
 import { Button } from './ui/button';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '../lib/utils';
 import {
@@ -29,17 +29,21 @@ import {
 const birthdateSchema = z.object({
   birthDate: z.date({
     required_error: "Please select a birth date",
-  }),
+  }).refine((date) => {
+    const age = new Date().getFullYear() - date.getFullYear();
+    return age >= 13 && age <= 120;
+  }, "You must be at least 13 years old"),
 });
 
 export const UpdateBirthdateDialog = ({ open, onOpenChange }) => {
   const { user, refreshUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [birthDate, setBirthDate] = useState(null);
   
   const {
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty },
     reset,
     setValue,
   } = useForm({
@@ -53,13 +57,16 @@ export const UpdateBirthdateDialog = ({ open, onOpenChange }) => {
 
   // Initialize birthDate from user data
   useEffect(() => {
-    if (open && user?.birthDate) {
-      const date = new Date(user.birthDate);
-      setBirthDate(date);
-      setValue('birthDate', date);
-    } else if (open && !user?.birthDate) {
-      setBirthDate(null);
-      setValue('birthDate', null);
+    if (open) {
+      if (user?.birthDate) {
+        const date = new Date(user.birthDate);
+        setBirthDate(date);
+        setValue('birthDate', date, { shouldDirty: false });
+      } else {
+        setBirthDate(null);
+        setValue('birthDate', null, { shouldDirty: false });
+      }
+      setShowSuccess(false);
     }
   }, [open, user?.birthDate, setValue]);
 
@@ -74,7 +81,6 @@ export const UpdateBirthdateDialog = ({ open, onOpenChange }) => {
       return;
     }
     
-    console.log('Submitting birthdate update:', { userId: user.userId, birthDate });
     setIsSubmitting(true);
     
     try {
@@ -85,102 +91,117 @@ export const UpdateBirthdateDialog = ({ open, onOpenChange }) => {
         },
       });
       
-      console.log('Birthdate update successful');
+      // Show success state
+      setShowSuccess(true);
       
-      // Refresh user context if available
+      // Refresh user context
       if (refreshUser) {
         await refreshUser();
       }
       
-      onOpenChange(false);
-      reset();
+      // Close dialog after short delay
+      setTimeout(() => {
+        onOpenChange(false);
+        setShowSuccess(false);
+      }, 1500);
     } catch (error) {
       console.error('Error updating birthdate:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-    } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleOpenChange = (newOpen) => {
-    if (!newOpen) {
-      reset();
-      setBirthDate(user?.birthDate ? new Date(user.birthDate) : null);
-    }
-    onOpenChange(newOpen);
+  const handleDateSelect = (date) => {
+    setBirthDate(date);
+    setValue('birthDate', date, { shouldDirty: true });
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Update Birth Date</DialogTitle>
-          <DialogDescription>
-            Select your date of birth below.
+          <DialogTitle className="text-2xl font-bold">Update Birth Date</DialogTitle>
+          <DialogDescription className="text-base">
+            Select your date of birth. You must be at least 13 years old.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field>
-            <FieldLabel>Birth Date</FieldLabel>
+        {showSuccess ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-green-500/20 rounded-full blur-xl animate-pulse" />
+              <CheckCircle className="relative h-16 w-16 text-green-500" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Birth Date Updated!</h3>
+            <p className="text-muted-foreground">Your changes have been saved successfully.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
             <FieldGroup>
+              <FieldLabel htmlFor="birthDate">Date of Birth</FieldLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    id="birthDate"
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !birthDate && "text-muted-foreground",
-                      errors.birthDate && "border-red-500"
+                      "w-full justify-start text-left font-normal text-base h-11",
+                      !birthDate && "text-muted-foreground"
                     )}
-                    type="button"
+                    disabled={isSubmitting}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {birthDate ? format(birthDate, "PPP") : <span>Pick a date</span>}
+                    {birthDate ? format(birthDate, 'PPP') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={birthDate}
-                    onSelect={(date) => {
-                      setBirthDate(date);
-                      setValue('birthDate', date);
-                    }}
+                    onSelect={handleDateSelect}
                     disabled={(date) =>
                       date > new Date() || date < new Date("1900-01-01")
                     }
                     initialFocus
+                    captionLayout="dropdown-buttons"
+                    fromYear={1924}
+                    toYear={new Date().getFullYear()}
                   />
                 </PopoverContent>
               </Popover>
+              {errors.birthDate && (
+                <FieldError>{errors.birthDate.message}</FieldError>
+              )}
+              <FieldDescription>
+                Your birth date will not be publicly displayed.
+              </FieldDescription>
             </FieldGroup>
-            {errors.birthDate && (
-              <FieldError>{errors.birthDate.message}</FieldError>
-            )}
-            <FieldDescription>
-              Your date of birth helps us personalize your experience.
-            </FieldDescription>
-          </Field>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || updateUserMutation.isPending || !birthDate}
-            >
-              {isSubmitting || updateUserMutation.isPending ? 'Updating...' : 'Update Birth Date'}
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !birthDate || !isDirty}
+                className="min-w-[100px]"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

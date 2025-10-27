@@ -20,3 +20,15 @@ export const useUpdateUser = () => {
     },
   });
 };
+
+export const useUploadPersonalPhoto = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ userId, file }) => usersAPI.uploadPersonalPhoto(userId, file),
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.user(variables.userId) });
+    },
+  });
+};
