@@ -39,3 +39,9 @@ export const useChangePassword = () => {
       usersAPI.changePassword(userId, oldPassword, newPassword),
   });
 };
+
+export const useSendEmailOtp = () => {
+  return useMutation({
+    mutationFn: ({ userId, email }) => usersAPI.sendEmailOtp(userId, email),
+  });
+};

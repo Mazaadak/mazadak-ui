@@ -24,4 +24,15 @@ export const usersAPI = {
       }
     );
   },
+  sendEmailOtp: async (userId, email) => {
+    const response = await apiClient.post(`/users/get-otp/${email}`, 
+      {},
+      {
+        headers: {
+          'X-User-Id': userId,
+        },
+      }
+    );
+    return response.data;
+  },
 }
