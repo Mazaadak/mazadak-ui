@@ -2,6 +2,7 @@ export const queryKeys = {
     auctions: {
         auctions: ['auctions'],
         auction: (id) => ['auctions', id],
+        watchlist: ['auctions', 'watchlist'],
     },
     products: {
         products: ['products'],

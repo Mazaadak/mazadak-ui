@@ -17,22 +17,46 @@ export const useAuctions = (filters = {}, pageable = {}) => {
     queryKey: [...queryKeys.auctions.auctions, filters, pageable],
     queryFn: () => auctionAPI.getAuctions(filters, pageable),
     keepPreviousData: true,
-    // refetch every 10 seconds for live auction lists
-    refetchInterval: 10000,
+    staleTime: 5000, // Consider data fresh for 5 seconds
+    // refetch every 30 seconds for live auction lists (reduced from 10s)
+    refetchInterval: 5000,
+  });
+};
+
+export const useWatchlist = () => {
+  return useQuery({
+    queryKey: queryKeys.auctions.watchlist,
+    queryFn: () => auctionAPI.getWatchlist(),
+    // refetch watchlist periodically
+    refetchInterval: 1000,
   });
 };
 
 export const useWatchAuction = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: (auctionId) => 
       auctionAPI.watchAuction(auctionId),
+    onSuccess: () => {
+      // Invalidate watchlist and auctions queries to refresh the data
+      queryClient.invalidateQueries(queryKeys.auctions.watchlist);
+      queryClient.invalidateQueries(queryKeys.auctions.auctions);
+    },
   });
 };
 
 export const useUnwatchAuction = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: (auctionId) => 
       auctionAPI.unwatchAuction(auctionId),
+    onSuccess: () => {
+      // Invalidate watchlist and auctions queries to refresh the data
+      queryClient.invalidateQueries(queryKeys.auctions.watchlist);
+      queryClient.invalidateQueries(queryKeys.auctions.auctions);
+    },
   });
 };
 
