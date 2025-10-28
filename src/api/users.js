@@ -10,38 +10,21 @@ export const usersAPI = {
     return apiClient.post('/users/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        'X-User-Id': userId,
       },
     });
   },
   changePassword: (userId, oldPassword, newPassword) => {
     return apiClient.post('/users/change-password', 
-      { oldPassword, newPassword },
-      {
-        headers: {
-          'X-User-Id': userId,
-        },
-      }
+      { oldPassword, newPassword }
     );
   },
   sendEmailOtp: async (userId, email) => {
-    const response = await apiClient.post(`/users/get-otp/${email}`, 
-      {},
-      {
-        headers: {
-          'X-User-Id': userId,
-        },
-      }
-    );
+    const response = await apiClient.post(`/users/get-otp/${email}`, {});
     return response.data;
   },
   
   deleteUser: async (userId) => {
-    const response = await apiClient.delete('/users', {
-      headers: {
-        'X-User-Id': userId,
-      },
-    });
+    const response = await apiClient.delete('/users');
     return response.data;
   },
 }
