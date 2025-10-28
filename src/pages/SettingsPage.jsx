@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone, Lock } from 'lucide-react';
+import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone, Lock, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { UpdateEmailDialog } from '../components/UpdateEmailDialog';
@@ -10,6 +10,7 @@ import { UpdateNameDialog } from '../components/UpdateNameDialog';
 import { UpdateBirthdateDialog } from '../components/UpdateBirthdateDialog';
 import { UpdatePhotoDialog } from '../components/UpdatePhotoDialog';
 import { UpdatePasswordDialog } from '../components/UpdatePasswordDialog';
+import { DeleteAccountDialog } from '../components/DeleteAccountDialog';
 import { useState } from 'react';
 import { format } from 'date-fns';
 
@@ -21,6 +22,7 @@ export const SettingsPage = () => {
   const [isBirthdateDialogOpen, setIsBirthdateDialogOpen] = useState(false);
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
 
   // Parse name from user object (backend returns single "name" field)
   const parseName = (fullName) => {
@@ -281,6 +283,41 @@ export const SettingsPage = () => {
             </CardContent>
           </Card>
 
+          {/* Delete Account - Danger Zone */}
+          <Card className="border-2 border-red-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <CardHeader className="pb-4 border-b border-red-200 bg-gradient-to-r from-red-50 to-transparent">
+              <CardTitle className="text-xl font-bold flex items-center gap-3">
+                <div className="p-2.5 bg-red-100 rounded-lg shadow-sm">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <div className="text-xl font-bold text-red-600">Danger Zone</div>
+                  <div className="text-xs font-normal text-muted-foreground mt-0.5">Irreversible actions</div>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm text-red-900">Delete Account</h3>
+                    <p className="text-xs text-red-700 mt-1">
+                      Once you delete your account, there is no going back. All your data will be permanently removed.
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant="destructive"
+                  className="w-full justify-center h-12 text-base font-semibold shadow-sm hover:shadow"
+                  onClick={() => setIsDeleteAccountDialogOpen(true)}
+                >
+                  Delete My Account
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
 
@@ -290,6 +327,7 @@ export const SettingsPage = () => {
       <UpdateBirthdateDialog open={isBirthdateDialogOpen} onOpenChange={setIsBirthdateDialogOpen} />
       <UpdatePhotoDialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen} />
       <UpdatePasswordDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen} />
+      <DeleteAccountDialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen} />
     </div>
   );
 };

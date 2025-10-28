@@ -45,3 +45,15 @@ export const useSendEmailOtp = () => {
     mutationFn: ({ userId, email }) => usersAPI.sendEmailOtp(userId, email),
   });
 };
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (userId) => usersAPI.deleteUser(userId),
+    onSuccess: () => {
+      // Clear all queries after account deletion
+      queryClient.clear();
+    },
+  });
+};

@@ -35,4 +35,13 @@ export const usersAPI = {
     );
     return response.data;
   },
+  
+  deleteUser: async (userId) => {
+    const response = await apiClient.delete('/users', {
+      headers: {
+        'X-User-Id': userId,
+      },
+    });
+    return response.data;
+  },
 }
