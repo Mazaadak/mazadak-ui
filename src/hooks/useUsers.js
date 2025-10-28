@@ -32,3 +32,10 @@ export const useUploadPersonalPhoto = () => {
     },
   });
 };
+
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: ({ userId, oldPassword, newPassword }) => 
+      usersAPI.changePassword(userId, oldPassword, newPassword),
+  });
+};

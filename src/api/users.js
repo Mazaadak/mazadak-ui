@@ -14,4 +14,14 @@ export const usersAPI = {
       },
     });
   },
+  changePassword: (userId, oldPassword, newPassword) => {
+    return apiClient.post('/users/change-password', 
+      { oldPassword, newPassword },
+      {
+        headers: {
+          'X-User-Id': userId,
+        },
+      }
+    );
+  },
 }

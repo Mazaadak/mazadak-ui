@@ -2,13 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone } from 'lucide-react';
+import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone, Lock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { UpdateEmailDialog } from '../components/UpdateEmailDialog';
 import { UpdateNameDialog } from '../components/UpdateNameDialog';
 import { UpdateBirthdateDialog } from '../components/UpdateBirthdateDialog';
 import { UpdatePhotoDialog } from '../components/UpdatePhotoDialog';
+import { UpdatePasswordDialog } from '../components/UpdatePasswordDialog';
 import { useState } from 'react';
 import { format } from 'date-fns';
 
@@ -19,6 +20,7 @@ export const SettingsPage = () => {
   const [isNameDialogOpen, setIsNameDialogOpen] = useState(false);
   const [isBirthdateDialogOpen, setIsBirthdateDialogOpen] = useState(false);
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   // Parse name from user object (backend returns single "name" field)
   const parseName = (fullName) => {
@@ -196,7 +198,7 @@ export const SettingsPage = () => {
               </div>
 
               {/* Birth Date */}
-              <div className="group flex items-center justify-between px-6 py-4 hover:bg-muted/50 transition-all duration-200">
+              <div className="group flex items-center justify-between px-6 py-4 hover:bg-muted/50 transition-all duration-200 border-b">
                 <div className="flex items-center gap-4 flex-1">
                   <div className="p-2.5 bg-muted rounded-lg group-hover:bg-primary/10 group-hover:shadow-sm transition-all duration-200">
                     <svg className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,6 +219,28 @@ export const SettingsPage = () => {
                   className="ml-2 hover:bg-primary/10 hover:text-primary transition-all"
                 >
                   <span className="hidden sm:inline mr-2">Edit</span>
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </div>
+
+              {/* Password */}
+              <div className="group flex items-center justify-between px-6 py-4 hover:bg-muted/50 transition-all duration-200">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="p-2.5 bg-muted rounded-lg group-hover:bg-primary/10 group-hover:shadow-sm transition-all duration-200">
+                    <Lock className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground mb-0.5">Password</p>
+                    <p className="text-base font-semibold transition-colors">••••••••</p>
+                  </div>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsPasswordDialogOpen(true)}
+                  className="ml-2 hover:bg-primary/10 hover:text-primary transition-all"
+                >
+                  <span className="hidden sm:inline mr-2">Change</span>
                   <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </div>
@@ -265,6 +289,7 @@ export const SettingsPage = () => {
       <UpdateNameDialog open={isNameDialogOpen} onOpenChange={setIsNameDialogOpen} />
       <UpdateBirthdateDialog open={isBirthdateDialogOpen} onOpenChange={setIsBirthdateDialogOpen} />
       <UpdatePhotoDialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen} />
+      <UpdatePasswordDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen} />
     </div>
   );
 };
