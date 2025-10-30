@@ -272,8 +272,8 @@ const AuctionDetails = () => {
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                     <Gavel className="h-4 w-4" />
                     Current Highest Bid
                   </p>
@@ -288,8 +288,8 @@ const AuctionDetails = () => {
                     </div>
                   )}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                     <TrendingUp className="h-4 w-4" />
                     Starting Price
                   </p>
