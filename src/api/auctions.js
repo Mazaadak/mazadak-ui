@@ -41,6 +41,9 @@ export const auctionAPI = {
     resumeAuction: (auctionId) => 
         apiClient.post(`/auctions/${auctionId}/resume`),
 
+    deleteAuction: (auctionId) => 
+        apiClient.delete(`/auctions/${auctionId}`),
+
     // BID ENDPOINTS
     placeBid: (auctionId, bidData, idempotencyKey) => 
         apiClient.post(`/auctions/${auctionId}/bids`, bidData, {

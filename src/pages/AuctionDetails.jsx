@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuction, useBidderBids, useBids } from '../hooks/useAuctions';
+import { useAuction, useBidderBids, useBids, usePauseAuction, useResumeAuction, useCancelAuction, useDeleteAuction } from '../hooks/useAuctions';
 import { useProduct } from '../hooks/useProducts';
 import { useUser } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,6 +9,14 @@ import { Separator } from '../components/ui/separator';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import { AuctionCountdown } from '../components/auction/AuctionCountdown';
 import { BidForm } from '../components/auction/BidForm';
 import { ProxyBidForm } from '../components/auction/ProxyBidForm';
@@ -22,7 +30,10 @@ import {
   TrendingUp,
   DollarSign,
   Gavel,
-  Info
+  Pause,
+  Play,
+  XCircle,
+  Trash2
 } from 'lucide-react';
 import { 
   canUserBid, 
@@ -38,8 +49,15 @@ const AuctionDetails = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  const pauseAuction = usePauseAuction();
+  const resumeAuction = useResumeAuction();
+  const cancelAuction = useCancelAuction();
+  const deleteAuction = useDeleteAuction();
 
-  // Fetch auction with polling enabled
+  // Fetch auction with polling every 2 seconds
   const { data: auction, isLoading: isLoadingAuction, error: auctionError } = useAuction(
     auctionId,
     { enablePolling: true }
@@ -338,11 +356,94 @@ const AuctionDetails = () => {
 
           {isAuthenticated && isOwner && (
             <Card className="border-blue-500/50 bg-blue-500/5">
-              <CardContent className="pt-6 text-center">
-                <Info className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  This is your auction. You cannot place bids on your own items.
-                </p>
+              <CardContent className="pt-6">
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-sm font-medium text-center mb-2">Auction Management</h3>
+                  
+                  {/* Pause button - Only for STARTED status */}
+                  {auction.status === 'STARTED' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => pauseAuction.mutate(auctionId, {
+                        onSuccess: () => {
+                          // Auction data will auto-refresh from polling
+                        }
+                      })}
+                      disabled={pauseAuction.isPending}
+                    >
+                      <Pause className="h-4 w-4 mr-2" />
+                      {pauseAuction.isPending ? 'Pausing...' : 'Pause Auction'}
+                    </Button>
+                  )}
+                  
+                  {/* Resume button - Only for PAUSED status */}
+                  {auction.status === 'PAUSED' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => resumeAuction.mutate(auctionId, {
+                        onSuccess: () => {
+                          // Auction data will auto-refresh from polling
+                        }
+                      })}
+                      disabled={resumeAuction.isPending}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      {resumeAuction.isPending ? 'Resuming...' : 'Resume Auction'}
+                    </Button>
+                  )}
+                  
+                  {/* Cancel button - Only for SCHEDULED or STARTED status */}
+                  {(auction.status === 'SCHEDULED' || auction.status === 'STARTED') && (
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => setCancelDialogOpen(true)}
+                      disabled={cancelAuction.isPending}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      {cancelAuction.isPending ? 'Cancelling...' : 'Cancel Auction'}
+                    </Button>
+                  )}
+                  
+                  {/* Show informational message for statuses with no actions */}
+                  {auction.status === 'ACTIVE' && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      Auction is active with bids. No management actions available.
+                    </p>
+                  )}
+                  {auction.status === 'ENDED' && (
+                    <p className="text-sm text-muted-foreground text-center">
+                      Auction has ended. No management actions available.
+                    </p>
+                  )}
+                  {auction.status === 'CANCELLED' && (
+                    <Button
+                      variant="destructive"
+                      className="w-full"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      disabled={deleteAuction.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {deleteAuction.isPending ? 'Deleting...' : 'Delete Auction'}
+                    </Button>
+                  )}
+                  
+                  {/* Error messages */}
+                  {(pauseAuction.isError || resumeAuction.isError || cancelAuction.isError || deleteAuction.isError) && (
+                    <div className="flex items-center gap-2 text-sm text-destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>
+                        {pauseAuction.error?.message || 
+                         resumeAuction.error?.message || 
+                         cancelAuction.error?.message || 
+                         deleteAuction.error?.message ||
+                         'An error occurred'}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -372,6 +473,77 @@ const AuctionDetails = () => {
           currentUserId={user?.userId}
         />
       </div>
+
+      {/* Cancel Auction Confirmation Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Auction</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel "{product?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={cancelAuction.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                cancelAuction.mutate(auctionId, {
+                  onSuccess: () => {
+                    setCancelDialogOpen(false);
+                    // Auction data will auto-refresh from polling
+                  }
+                });
+              }}
+              disabled={cancelAuction.isPending}
+            >
+              {cancelAuction.isPending ? 'Cancelling...' : 'Cancel Auction'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Auction Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Auction</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{product?.title}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleteAuction.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                deleteAuction.mutate(auctionId, {
+                  onSuccess: () => {
+                    setDeleteDialogOpen(false);
+                    // Navigate back to listings page, auctions tab
+                    navigate('/listings?tab=auctions');
+                  }
+                });
+              }}
+              disabled={deleteAuction.isPending}
+            >
+              {deleteAuction.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

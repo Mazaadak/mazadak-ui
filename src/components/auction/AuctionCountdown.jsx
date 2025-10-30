@@ -22,6 +22,11 @@ export const AuctionCountdown = ({ endTime, status, className = '' }) => {
     return () => clearInterval(timer);
   }, [endTime, status]);
 
+  // Don't render anything if auction is cancelled
+  if (status === 'CANCELLED') {
+    return null;
+  }
+
   if (status === 'ENDED') {
     return (
       <Badge variant="outline" className={`text-muted-foreground ${className}`}>
@@ -36,6 +41,14 @@ export const AuctionCountdown = ({ endTime, status, className = '' }) => {
       <Badge variant="secondary" className={className}>
         <Clock className="mr-1 h-3 w-3" />
         Not Started
+      </Badge>
+    );
+  }
+
+  if (status === 'CANCELLED') {
+    return (
+      <Badge variant="destructive" className={className}>
+        Cancelled
       </Badge>
     );
   }

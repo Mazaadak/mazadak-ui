@@ -84,6 +84,22 @@ export const useResumeAuction = () => {
   });
 };
 
+export const useDeleteAuction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (auctionId) => auctionAPI.deleteAuction(auctionId),
+    onSuccess: (data, auctionId) => {
+      // Invalidate the specific auction
+      queryClient.invalidateQueries(queryKeys.auctions.auction(auctionId));
+      // Invalidate all auction list queries (this will catch all filters/pagination combos)
+      queryClient.invalidateQueries({ queryKey: queryKeys.auctions.auctions });
+      // Also invalidate watchlist in case the deleted auction was watched
+      queryClient.invalidateQueries(queryKeys.auctions.watchlist);
+    },
+  });
+};
+
 // ==================== BID HOOKS ====================
 
 export const usePlaceBid = () => {
