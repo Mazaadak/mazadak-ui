@@ -15,18 +15,35 @@ import { CreateItemPage } from "./pages/CreateItemPage.jsx";
 import { CartPage } from "./pages/CartPage.jsx";
 import ListingsPage from "./pages/ListingsPage.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import AuctionDetails from "./pages/AuctionDetails.jsx";
 import { MyListingsPage } from "./pages/MyListings.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
 import { AddressPage } from "./pages/AddressPage.jsx";
+import { Toaster } from "sonner";
+import { useTheme } from "./components/providers/ThemeProvider.jsx"; 
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       retry: 2,
-    }
-  }
+    },
+  },
 });
+
+function ToasterWithTheme() {
+  const { theme } = useTheme();
+  
+  return (
+    <Toaster
+      theme={theme}
+      richColors
+      closeButton
+      position="bottom-right"
+      duration={4000}
+    />
+  );
+}
 
 function App() {
   return (
@@ -34,30 +51,34 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <ThemeProvider>
+            <ToasterWithTheme />
             <Routes>
-              <Route element={<MainLayout/>}>
-                <Route path="/" element={<HomePage/>} />
-                <Route path="/login" element={<LoginPage/>} />
-                <Route path="/register" element={<RegisterPage/>} />
-                <Route path="/verify" element={<VerifyPage/>} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
-                <Route path="/reset-password" element={<ResetPasswordPage/>} />
-                <Route path="/cart" element={<CartPage/>} />
-                <Route path="/listings" element={<ListingsPage/>} />
-                <Route path="/products/:productId" element={<ProductDetails/>} />
-                  <Route path="/my-listings" element={<MyListingsPage/>} /> 
+              <Route element={<MainLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify" element={<VerifyPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/listings" element={<ListingsPage />} />
+                <Route path="/products/:productId" element={<ProductDetails />} />
+                <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
               <Route element={<ProtectedLayout/>}>
                 <Route path="/create-item" element={<CreateItemPage/>} />
                 <Route path="/settings" element={<SettingsPage/>} />
                 <Route path="/address" element={<AddressPage/>} />
+              <Route element={<ProtectedLayout />}>
+                <Route path="/create-item" element={<CreateItemPage />} />
+                <Route path="/my-listings" element={<MyListingsPage />} />
+                <Route path="/cart" element={<CartPage />} />
               </Route>
             </Routes>
           </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
-  )
+  );
 }
 
 export default App;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useUserProducts, useDeleteProduct } from '../hooks/useProducts';
+import { useDeleteProduct, useProduct, useProducts } from '../hooks/useProducts';
 import { useInventoryItem } from '../hooks/useInventory';
 import { EditProductSheet } from '../components/EditProductSheet';
 import { Button } from '../components/ui/button';
@@ -22,10 +22,12 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import { Package, Pencil, Trash2, Plus, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export const MyListingsPage = () => {
-  const { data: products = [], isLoading, error } = useUserProducts();
+  const { user } = useAuth();
+  const { data: products = [], isLoading, error } = useProducts({ sellerId: user.userId }, { unpaged: true });
 
   console.log("products:", products);
   const deleteProduct = useDeleteProduct();
@@ -51,6 +53,7 @@ export const MyListingsPage = () => {
   const handleDeleteConfirm = async () => {
     if (productToDelete) {
       try {
+        console.log("Deleting product:", productToDelete);
         await deleteProduct.mutateAsync(productToDelete.productId);
         setDeleteDialogOpen(false);
         setProductToDelete(null);
@@ -89,7 +92,7 @@ export const MyListingsPage = () => {
     );
   }
 
-  if (products.length === 0) {
+  if (products.content.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -119,9 +122,6 @@ export const MyListingsPage = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">My Listings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your products and inventory
-          </p>
         </div>
         <Button asChild>
           <Link to="/create-item">
@@ -146,7 +146,7 @@ export const MyListingsPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {products.map((product) => (
+              {products.content.map((product) => (
                 <ProductRow
                   key={product.productId}
                   product={product}
@@ -201,9 +201,10 @@ export const MyListingsPage = () => {
 const ProductRow = ({key, product, onEdit, onDelete }) => {
   const { data: inventory } = useInventoryItem(product.productId);
   const stock = inventory?.totalQuantity - inventory?.reservedQuantity || 0;
+  const navigate = useNavigate();
 
   return (
-    <TableRow>
+    <TableRow key={key}>
       <TableCell>
         {product.images?.[0] ? (
           <img

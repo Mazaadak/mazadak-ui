@@ -1,59 +1,32 @@
 import { useProduct } from "../hooks/useProducts";
 import { useInventoryItem } from "../hooks/useInventory";
 import { useAddToCart } from "../hooks/useCart";
+import { useProductRatings } from "../hooks/useRatings";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardFooter } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
-import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle } from "lucide-react";
+import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { RatingForm } from "../components/RatingForm";
+import { RatingList } from "../components/RatingList";
 
 const ProductDetails = () => {
-  const  productId  = useParams().productId;
+  const productId = useParams().productId;
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [ratingsPage, setRatingsPage] = useState(0);
 
   console.log("Product ID:", productId);
   
   const { data: product, isLoading, error } = useProduct(productId);
   const { data: inventoryItem } = useInventoryItem(productId);
+  const { data: ratingsData, isLoading: ratingsLoading } = useProductRatings(productId, ratingsPage, 10);
+  
   const stock = inventoryItem ? inventoryItem.totalQuantity - inventoryItem.reservedQuantity : 0;
-   console.log("Inventory Item:", inventoryItem);
-
-//   // Mock data for testing
-//   const { data: product, isLoading, error } = {
-//     data: {
-//       productId: productId,
-//       title: "Premium Wireless Headphones",
-//       description: "Experience crystal-clear audio with our premium wireless headphones. Featuring advanced noise cancellation, 30-hour battery life, and comfortable over-ear design. Perfect for music lovers, travelers, and professionals.",
-//       price: 149.99,
-//       stock: 25,
-//       category: "Electronics",
-//       images: [
-//         { imageId: "1", imageUri: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop" },
-//         { imageId: "2", imageUri: "https://images.unsplash.com/photo-1484704849700-f032a568e944?w=600&h=600&fit=crop" },
-//         { imageId: "3", imageUri: "https://images.unsplash.com/photo-1487215078519-e21cc028cb29?w=600&h=600&fit=crop" }
-//       ],
-//       ratings: [
-//         { ratingId: "r1", rating: 5 },
-//         { ratingId: "r2", rating: 4 },
-//         { ratingId: "r3", rating: 5 },
-//         { ratingId: "r4", rating: 4 },
-//         { ratingId: "r5", rating: 5 }
-//       ],
-//       features: [
-//         "Active Noise Cancellation",
-//         "30-hour battery life",
-//         "Bluetooth 5.0",
-//         "Foldable design",
-//         "Built-in microphone"
-//       ]
-//     },
-//     isLoading: false,
-//     error: null
-//   };
+  console.log("Inventory Item:", inventoryItem);
 
   const addToCart = useAddToCart();
 
@@ -207,10 +180,10 @@ const ProductDetails = () => {
         <div className="space-y-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              {product.category.name && (
-                <Badge variant="secondary">{product.category.name   }</Badge>
+              {product.category?.name && (
+                <Badge variant="secondary">{product.category.name}</Badge>
               )}
-              { stock > 0 ? (
+              {stock > 0 ? (
                 <Badge variant="outline" className="text-green-600 border-green-600">
                   <Check className="mr-1 h-3 w-3" />
                   In Stock ({stock} available)
@@ -255,24 +228,6 @@ const ProductDetails = () => {
               {product.description}
             </p>
           </div>
-        {/* /* Features TODO: Implement features display
-          Features
-          {product.features && product.features.length > 0 && (
-            <>
-              <Separator />
-              <div>
-                <h3 className="font-semibold mb-3">Features</h3>
-                <ul className="space-y-2">
-                  {product.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                      <span className="text-muted-foreground">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </>
-          )} */}
 
           <Separator />
 
@@ -338,6 +293,73 @@ const ProductDetails = () => {
               )}
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mt-12">
+        <Separator className="mb-8" />
+        
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Leave a Review */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Leave a Review
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RatingForm 
+                  productId={productId}
+                  onSuccess={() => {
+                    console.log('Review submitted successfully!');
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Reviews List */}
+          <div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold mb-2">Customer Reviews</h2>
+              {ratingsData?.totalElements > 0 && (
+                <p className="text-muted-foreground">
+                  {ratingsData.totalElements} {ratingsData.totalElements === 1 ? 'review' : 'reviews'}
+                </p>
+              )}
+            </div>
+
+            <RatingList 
+              ratings={ratingsData?.content || []}
+              isLoading={ratingsLoading}
+            />
+
+            {/* Pagination */}
+            {ratingsData && ratingsData.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setRatingsPage(prev => Math.max(0, prev - 1))}
+                  disabled={ratingsPage === 0}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {ratingsPage + 1} of {ratingsData.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setRatingsPage(prev => prev + 1)}
+                  disabled={ratingsPage >= ratingsData.totalPages - 1}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

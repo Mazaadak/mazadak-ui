@@ -13,7 +13,7 @@ const ProductModal = ({ open, onClose, onSelect }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductId, setSelectedProductId] = useState(null);
   const { user } = useAuth();
-  const { data, isLoading } = useProducts({ sellerId: user.userId, status: 'INACTIVE' });
+  const { data, isLoading } = useProducts({ sellerId: user.userId, type: 'NONE' });
 
   const filteredProducts = data?.content.filter(product =>
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
