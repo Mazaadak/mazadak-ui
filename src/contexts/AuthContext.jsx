@@ -135,6 +135,18 @@ const setUserFromToken = async (token) => {
     return response;
   };
 
+  const refreshUser = async () => {
+    if (user?.userId) {
+      try {
+        const userData = await fetchUserData(user.userId);
+        setUser({ ...user, ...userData });
+        console.log("User data refreshed:", userData);
+      } catch (error) {
+        console.error("Error refreshing user data:", error);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -146,6 +158,7 @@ const setUserFromToken = async (token) => {
         forgotPassword,
         verifyOtp,
         resetPassword,
+        refreshUser,
         isAuthenticated: !!user,
       }}
     >

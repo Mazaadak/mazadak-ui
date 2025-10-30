@@ -17,6 +17,8 @@ import ListingsPage from "./pages/ListingsPage.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
 import AuctionDetails from "./pages/AuctionDetails.jsx";
 import { MyListingsPage } from "./pages/MyListings.jsx";
+import { SettingsPage } from "./pages/SettingsPage.jsx";
+import { AddressPage } from "./pages/AddressPage.jsx";
 import { Toaster } from "sonner";
 import { useTheme } from "./components/providers/ThemeProvider.jsx"; 
 
@@ -62,6 +64,10 @@ function App() {
                 <Route path="/products/:productId" element={<ProductDetails />} />
                 <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
+              <Route element={<ProtectedLayout/>}>
+                <Route path="/create-item" element={<CreateItemPage/>} />
+                <Route path="/settings" element={<SettingsPage/>} />
+                <Route path="/address" element={<AddressPage/>} />
               <Route element={<ProtectedLayout />}>
                 <Route path="/create-item" element={<CreateItemPage />} />
                 <Route path="/my-listings" element={<MyListingsPage />} />
