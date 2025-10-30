@@ -82,8 +82,8 @@ export const ProxyBidForm = ({ auction, userId }) => {
 
   return (
     <Card className="border-primary/20">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="text-center">
+        <CardTitle className="flex items-center justify-center gap-2">
           <TrendingUp className="h-5 w-5" />
           Automatic Bidding (Proxy Bid)
         </CardTitle>
@@ -94,12 +94,6 @@ export const ProxyBidForm = ({ auction, userId }) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="maxAmount">
-              Maximum Bid Amount
-            </Label>
-            <p className="text-xs text-muted-foreground mt-1 mb-2">
-              The system will automatically place bids on your behalf up to this amount
-            </p>
             <Input
               id="maxAmount"
               type="number"
