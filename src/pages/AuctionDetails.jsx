@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuction } from '../hooks/useAuctions';
+import { useAuction, useBidderBids, useBids } from '../hooks/useAuctions';
 import { useProduct } from '../hooks/useProducts';
 import { useUser } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +50,34 @@ const AuctionDetails = () => {
 
   // Fetch seller details
   const { data: seller, isLoading: isLoadingSeller } = useUser(auction?.sellerId);
+
+  // Fetch bid history to get user's actual last bid (including proxy bids)
+  const { data: bidsData } = useBids(
+    auctionId,
+    { page: 0, size: 50 },
+    { enablePolling: true }
+  );
+
+  // Fetch user's bids for this auction (only if authenticated and not owner)
+  const { data: userBidsData } = useBidderBids(
+    user?.userId,
+    { page: 0, size: 100 },
+  );
+
+  // Filter bids by current user from the bid history
+  const allBids = bidsData?.content || [];
+  const userBidsFromHistory = allBids.filter(bid => bid.bidderId === user?.userId);
+  
+  // Check if user is winning by comparing their ID with the highest bid's bidder ID
+  const isUserWinning = auction?.highestBidPlaced?.bidderId === user?.userId;
+  
+  // Get user's last bid:
+  // - If winning: show the highest bid (which is theirs)
+  // - If not winning but has bids: show their most recent bid from history (includes proxy bids)
+  // - Otherwise: null
+  const userLastBid = isUserWinning 
+    ? auction.highestBidPlaced 
+    : (userBidsFromHistory.length > 0 ? userBidsFromHistory[0] : null); // First item is most recent due to sorting
 
   const isLoading = isLoadingAuction || isLoadingProduct;
   const userCanBid = canUserBid(auction, user?.userId);
@@ -186,21 +214,32 @@ const AuctionDetails = () => {
             
             <h1 className="text-3xl font-bold mb-4">{auction.title}</h1>
 
-            {/* Seller Info */}
+            {/* Seller Info - Compact */}
             {seller && (
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Avatar>
+              <div className="flex items-center gap-2 text-sm mb-2">
+                <Avatar className="h-6 w-6">
                   <AvatarImage src={seller.avatar} alt={seller.username} />
-                  <AvatarFallback>
-                    {seller.username?.substring(0, 2).toUpperCase() || <User className="h-4 w-4" />}
+                  <AvatarFallback className="text-xs">
+                    {seller.username?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-sm text-muted-foreground">Sold by</p>
-                  <p className="font-medium">{seller.username || seller.email}</p>
-                </div>
+                <span className="text-muted-foreground">Sold by</span>
+                <span className="font-medium">{seller.username || seller.email}</span>
               </div>
             )}
+
+            {/* Auction Times - Compact */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>Starts: {formatEgyptTime(auction.startTime, 'MMM dd, h:mm a')}</span>
+              </div>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>Ends: {formatEgyptTime(auction.endTime, 'MMM dd, h:mm a')}</span>
+              </div>
+            </div>
           </div>
 
           <Separator />
@@ -212,18 +251,23 @@ const AuctionDetails = () => {
                 <div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Gavel className="h-4 w-4" />
-                    Current Bid
+                    Current Highest Bid
                   </p>
-                  <p className="text-3xl font-bold mt-1">
-                    {auction.highestBidPlaced
-                      ? formatCurrency(auction.highestBidPlaced.amount)
-                      : formatCurrency(auction.startingPrice)}
-                  </p>
+                  {auction.highestBidPlaced ? (
+                    <p className="text-3xl font-bold mt-1">
+                      {formatCurrency(auction.highestBidPlaced.amount)}
+                    </p>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-lg font-semibold text-muted-foreground">No bids yet</p>
+                      <p className="text-xs text-muted-foreground">Starting at {formatCurrency(auction.startingPrice)}</p>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <TrendingUp className="h-4 w-4" />
-                    Starting Bid
+                    Starting Price
                   </p>
                   <p className="text-xl font-semibold mt-1">
                     {formatCurrency(auction.startingPrice)}
@@ -248,31 +292,31 @@ const AuctionDetails = () => {
             </CardContent>
           </Card>
 
-          {/* Auction Times */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Start Time
-                  </span>
-                  <span className="font-medium">
-                    {formatEgyptTime(auction.startTime)}
-                  </span>
+          {/* User's Last Bid Status */}
+          {isAuthenticated && userLastBid && !isOwner && (
+            <Card className={isUserWinning ? "border-green-500 bg-green-500/5" : "border-yellow-500 bg-yellow-500/5"}>
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className={`p-2 rounded-full ${isUserWinning ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                    <Gavel className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-1">
+                      {isUserWinning ? '🎉 You are winning!' : 'Your Last Bid'}
+                    </h3>
+                    <p className="text-2xl font-bold mb-2">
+                      {formatCurrency(userLastBid.amount)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {isUserWinning 
+                        ? 'You have the highest bid. Keep monitoring the auction!' 
+                        : 'You have been outbid. Place a higher bid to win!'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    End Time
-                  </span>
-                  <span className="font-medium">
-                    {formatEgyptTime(auction.endTime)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Bidding Section */}
           {!isAuthenticated && auctionActive && (
@@ -325,6 +369,7 @@ const AuctionDetails = () => {
         <BidHistory 
           auctionId={auction.id} 
           highestBidId={auction.highestBidPlaced?.id}
+          currentUserId={user?.userId}
         />
       </div>
     </div>

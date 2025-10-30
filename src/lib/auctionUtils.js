@@ -70,6 +70,15 @@ export const formatTimeRemaining = (endTime) => {
 };
 
 /**
+ * Check if auction has started
+*/
+
+export const isAuctionStarted = (auction) => {
+  if (!auction) return false;
+  return auction.status === "STARTED";
+}
+
+/**
  * Check if auction is active
  */
 export const isAuctionActive = (auction) => {
@@ -103,7 +112,7 @@ export const canUserBid = (auction, userId) => {
   if (auction.sellerId === userId) return false;
   
   // Can only bid on active auctions
-  if (!isAuctionActive(auction)) return false;
+  if (!isAuctionActive(auction) && !isAuctionStarted(auction)) return false;
   
   // Check if auction has ended
   if (isAuctionEnded(auction)) return false;
