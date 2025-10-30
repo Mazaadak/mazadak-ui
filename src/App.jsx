@@ -18,6 +18,7 @@ import ProductDetails from "./pages/ProductDetails.jsx";
 import { MyListingsPage } from "./pages/MyListings.jsx";
 import { Toaster } from "sonner";
 import { useTheme } from "./components/providers/ThemeProvider.jsx"; 
+import WatchlistPage from "./pages/WatchlistPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ function App() {
                 <Route path="/create-item" element={<CreateItemPage />} />
                 <Route path="/my-listings" element={<MyListingsPage />} />
                 <Route path="/cart" element={<CartPage />} />
+                <Route path="/watchlist" element={<WatchlistPage />} />
               </Route>
             </Routes>
           </ThemeProvider>

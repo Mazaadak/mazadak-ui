@@ -28,7 +28,7 @@ export const useWatchlist = () => {
     queryKey: queryKeys.auctions.watchlist,
     queryFn: () => auctionAPI.getWatchlist(),
     // refetch watchlist periodically
-    refetchInterval: 1000,
+    refetchInterval: 10000,
   });
 };
 
