@@ -688,7 +688,10 @@ const ListingsPage = () => {
                           <Button 
                             className="w-full h-8 text-xs" 
                             size="sm"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/auctions/${auction.id}`);
+                            }}
                           >
                             View Details
                           </Button>
