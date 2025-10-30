@@ -32,13 +32,11 @@ export const queryKeys = {
     addresses: {
         addresses: ['addresses'],
         address: (id) => ['addresses', id],
+    },
+    ratings: {
+        all: ['ratings'],
+        productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
+        userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
+        rating: (ratingId) => ['ratings', ratingId],
     }
-    },  
-
-  ratings: {
-    all: ['ratings'],
-    productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
-    userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
-    rating: (ratingId) => ['ratings', ratingId],
-  }
 };

@@ -64,12 +64,10 @@ function App() {
                 <Route path="/products/:productId" element={<ProductDetails />} />
                 <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
-              <Route element={<ProtectedLayout/>}>
-                <Route path="/create-item" element={<CreateItemPage/>} />
-                <Route path="/settings" element={<SettingsPage/>} />
-                <Route path="/address" element={<AddressPage/>} />
               <Route element={<ProtectedLayout />}>
                 <Route path="/create-item" element={<CreateItemPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/address" element={<AddressPage />} />
                 <Route path="/my-listings" element={<MyListingsPage />} />
                 <Route path="/cart" element={<CartPage />} />
               </Route>
