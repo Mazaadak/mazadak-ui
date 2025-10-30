@@ -6,6 +6,7 @@ export const queryKeys = {
         highestBid: (auctionId) => ['auctions', auctionId, 'highest-bid'],
         bidderBids: (bidderId) => ['auctions', 'bidder', bidderId, 'bids'],
         proxyBid: (auctionId, bidderId) => ['auctions', auctionId, 'proxy-bids', bidderId],
+        watchlist: ['auctions', 'watchlist'],
     },
     products: {
         products: ['products'],
@@ -27,6 +28,12 @@ export const queryKeys = {
     },
     inventory: {
         item: (id) => ['inventory', id],
-    }
+    },  
 
-}
+  ratings: {
+    all: ['ratings'],
+    productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
+    userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
+    rating: (ratingId) => ['ratings', ratingId],
+  }
+};

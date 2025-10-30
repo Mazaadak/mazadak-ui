@@ -5,13 +5,18 @@ export const auctionAPI = {
     getAuction: (auctionId) => 
         apiClient.get(`/auctions/${auctionId}`),
 
-    getAuctions: (filters = {}, pageable = {}) => 
-        apiClient.get('/auctions', {
+    getAuctions: (filters = {}, pageable = {}) => {
+        console.log('Fetching auctions with:', { filters, pageable });
+        return apiClient.get('/auctions', {
             params: {
                 ...filters,
                 ...pageable
             }
-        }),
+        }).then(response => {
+            console.log('Auctions API response:', response);
+            return response;
+        });
+    },
 
     // WATCH/UNWATCH ENDPOINTS
     watchAuction: (auctionId) => 
@@ -19,6 +24,12 @@ export const auctionAPI = {
 
     unwatchAuction: (auctionId) => 
         apiClient.post(`/auctions/${auctionId}/unwatch`),
+
+    getWatchlist: () => 
+        apiClient.get('/auctions/watchlist'),
+
+    isAuctionWatched: (auctionId) => 
+        apiClient.get(`/auctions/${auctionId}/is-watched`),
 
     // AUCTION ACTIONS 
     cancelAuction: (auctionId) => 

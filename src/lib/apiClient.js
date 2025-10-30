@@ -35,7 +35,14 @@ apiClient.interceptors.request.use(
 
 // response interceptor to handle 401 errors and token refresh
 apiClient.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    // Handle empty responses or non-JSON responses
+    if (response.data === '' || response.data === null || response.data === undefined) {
+      console.warn('Empty response received:', response);
+      return null;
+    }
+    return response.data;
+  },
   async (error) => {    
     const originalRequest = error.config;
 
