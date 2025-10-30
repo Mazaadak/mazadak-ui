@@ -15,6 +15,7 @@ import { CreateItemPage } from "./pages/CreateItemPage.jsx";
 import { CartPage } from "./pages/CartPage.jsx";
 import ListingsPage from "./pages/ListingsPage.jsx";
 import ProductDetails from "./pages/ProductDetails.jsx";
+import AuctionDetails from "./pages/AuctionDetails.jsx";
 import { MyListingsPage } from "./pages/MyListings.jsx";
 import { Toaster } from "sonner";
 import { useTheme } from "./components/providers/ThemeProvider.jsx"; 
@@ -59,6 +60,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/listings" element={<ListingsPage />} />
                 <Route path="/products/:productId" element={<ProductDetails />} />
+                <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
               <Route element={<ProtectedLayout />}>
                 <Route path="/create-item" element={<CreateItemPage />} />
