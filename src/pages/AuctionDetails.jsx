@@ -236,13 +236,19 @@ const AuctionDetails = () => {
             {seller && (
               <div className="flex items-center gap-2 text-sm mb-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={seller.avatar} alt={seller.username} />
+                  <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
                   <AvatarFallback className="text-xs">
-                    {seller.username?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
+                    {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-muted-foreground">Sold by</span>
-                <span className="font-medium">{seller.username || seller.email}</span>
+                <span className="font-medium">
+                  {seller.name || 
+                   (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : null) ||
+                   seller.firstName ||
+                   seller.username ||
+                   'Seller'}
+                </span>
               </div>
             )}
 

@@ -16,7 +16,12 @@ const BidderInfo = ({ bidderId, isUserBid, isHighest }) => {
     return <span className="text-sm text-muted-foreground">Loading...</span>;
   }
 
-  const displayName = user?.username || user?.email || `Bidder ${bidderId.substring(0, 8)}`;
+  // Prioritize: full name > first name > username > fallback
+  const displayName = user?.name || 
+                      (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : null) ||
+                      user?.firstName ||
+                      user?.username || 
+                      `Bidder ${bidderId.substring(0, 8)}`;
   const initials = displayName.substring(0, 2).toUpperCase();
 
   return (
