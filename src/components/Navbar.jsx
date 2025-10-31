@@ -19,6 +19,11 @@ export const Navbar = () => {
     navigate("/login");
   };
 
+  // Handler to navigate with clean state (no URL params)
+  const navigateClean = (path) => {
+    navigate(path, { replace: false });
+  };
+
   return (
     <nav className="border-b bg-background sticky top-0 z-50">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -30,10 +35,10 @@ export const Navbar = () => {
           
           {/* Navigation links - available to ALL users */}
           <div className="hidden md:flex items-center gap-1">
-            <Button variant="ghost" size="sm">
-              <Link to="/listings" className="text-sm font-medium hover:text-primary transition-colors">
+            <Button variant="ghost" size="sm" onClick={() => navigateClean('/listings')}>
+              <span className="text-sm font-medium hover:text-primary transition-colors">
                 Listings
-              </Link>
+              </span>
             </Button>
           </div>
         </div>
@@ -45,26 +50,18 @@ export const Navbar = () => {
             <div className="flex items-center gap-2">
               {/* User-specific navigation buttons */}
               <div className="hidden sm:flex items-center gap-1">
-                <Link to="/watchlist">
-                  <Button variant="ghost" size="sm" className="hidden lg:flex">
-                    Watchlist
-                  </Button>
-                </Link>
-                <Link to="/cart">
-                  <Button variant="ghost" size="sm" className="hidden md:flex">
-                    Cart
-                  </Button>
-                </Link>
-                <Link to="/my-listings">
-                  <Button variant="ghost" size="sm" className="hidden sm:flex">
-                    My Listings
-                  </Button>
-                </Link>
-                <Link to="/create-item">
-                  <Button size="sm" className="hidden sm:flex">
-                    Sell Item
-                  </Button>
-                </Link>
+                <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={() => navigateClean('/watchlist')}>
+                  Watchlist
+                </Button>
+                <Button variant="ghost" size="sm" className="hidden md:flex" onClick={() => navigateClean('/cart')}>
+                  Cart
+                </Button>
+                <Button variant="ghost" size="sm" className="hidden sm:flex" onClick={() => navigateClean('/my-listings')}>
+                  My Listings
+                </Button>
+                <Button size="sm" className="hidden sm:flex" onClick={() => navigateClean('/create-item')}>
+                  Sell Item
+                </Button>
               </div>
               
               {/* Profile and logout */}

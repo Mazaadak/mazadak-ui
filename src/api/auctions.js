@@ -40,4 +40,10 @@ export const auctionAPI = {
 
     resumeAuction: (auctionId) => 
         apiClient.post(`/auctions/${auctionId}/resume`),
+
+    deleteAuction: (auctionId) => 
+        apiClient.delete(`/auctions/${auctionId}`),
+
+    updateAuction: (auctionId, data) => 
+        apiClient.put(`/auctions/${auctionId}`, data),
 }

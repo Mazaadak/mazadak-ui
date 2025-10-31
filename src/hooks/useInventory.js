@@ -34,7 +34,9 @@ export const useDeleteInventoryItem = () => {
       inventoryApi.deleteInventoryItem(productId),
 
     onSuccess: (data, productId) => {
-      queryClient.invalidateQueries(queryKeys.inventory.item(productId));
+      // Don't invalidate immediately - let the caller handle it with proper delay
+      // The backend needs time to process the InventoryDeletedEvent
+      console.log('Inventory deleted successfully, backend processing event...');
     },
   });
 };

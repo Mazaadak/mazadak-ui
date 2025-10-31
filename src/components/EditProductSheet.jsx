@@ -5,33 +5,44 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import { useUpdateProduct } from '../hooks/useProducts';
-import { useUpdateInventoryItem } from '../hooks/useInventory';
+import { useUpdateProduct, useCategories } from '../hooks/useProducts';
 import { Loader2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 
-export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => {
+export const EditProductSheet = ({ product, open, onOpenChange }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     price: '',
-    quantity: '',
-    status: 'ACTIVE', 
+    categoryId: '',
   });
 
   const updateProduct = useUpdateProduct();
-  const updateInventory = useUpdateInventoryItem();
+  const { data: categoriesData } = useCategories();
 
+  // Update form when product changes and sheet opens
   useEffect(() => {
-    if (product) {
+    if (product && open) {
       setFormData({
         title: product.title || '',
         description: product.description || '',
         price: product.price || '',
-        quantity: inventory?.totalQuantity - inventory?.reservedQuantity || 0,
-        status: product.status || 'ACTIVE',
+        categoryId: product.category?.categoryId || '',
       });
     }
-  }, [product, inventory]);
+  }, [product, open]);
+
+  // Reset form when sheet closes
+  useEffect(() => {
+    if (!open) {
+      setFormData({
+        title: '',
+        description: '',
+        price: '',
+        categoryId: '',
+      });
+    }
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,11 +52,10 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
     }));
   };
 
-  // Separate handler for Select component
-  const handleStatusChange = (value) => {
+  const handleCategoryChange = (value) => {
     setFormData(prev => ({
       ...prev,
-      status: value
+      categoryId: parseInt(value)
     }));
   };
 
@@ -59,36 +69,20 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
           title: formData.title,
           description: formData.description,
           price: parseFloat(formData.price),
-          status: formData.status, 
-          categoryId: product.categoryId
+          categoryId: formData.categoryId
         }
       });
 
-      await updateInventory.mutateAsync({
-        productId: product.productId,
-        quantity: parseInt(formData.quantity) || 0,
-      });
-
+      toast.success('Product updated successfully');
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to update product:', error);
+      toast.error(error.response?.data?.message || 'Failed to update product');
     }
   };
 
-  const isLoading = updateProduct.isPending || updateInventory.isPending;
-
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'ACTIVE':
-        return 'text-green-600';
-      case 'INACTIVE':
-        return 'text-orange-600';
-      case 'DELETED':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
+  const isLoading = updateProduct.isPending;
+  const categories = categoriesData || [];
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -96,7 +90,7 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
         <SheetHeader>
           <SheetTitle>Edit Product</SheetTitle>
           <SheetDescription>
-            Make changes to your product listing
+            Update product details
           </SheetDescription>
         </SheetHeader>
 
@@ -152,67 +146,33 @@ export const EditProductSheet = ({ product, inventory, open, onOpenChange }) => 
             />
           </div>
 
-          {/* Status Selector */}
+          {/* Category */}
           <div className="space-y-2">
-            <Label htmlFor="status">Product Status</Label>
-            <Select 
-              value={formData.status} 
-              onValueChange={handleStatusChange}
+            <Label htmlFor="categoryId">Category</Label>
+            <Select
+              value={formData.categoryId?.toString()}
+              onValueChange={handleCategoryChange}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select status" />
+                <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ACTIVE">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-green-600"></span>
-                    Active
-                  </div>
-                </SelectItem>
-                <SelectItem value="INACTIVE">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-orange-600"></span>
-                    Inactive
-                  </div>
-                </SelectItem>
-                <SelectItem value="DELETED">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-red-600"></span>
-                    Deleted
-                  </div>
-                </SelectItem>
+                {categories.map((category) => (
+                  <SelectItem
+                    key={category.categoryId}
+                    value={category.categoryId.toString()}
+                  >
+                    {category.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              {formData.status === 'ACTIVE' && 'Product is visible and available for purchase'}
-              {formData.status === 'INACTIVE' && 'Product is hidden from listings but not deleted'}
-              {formData.status === 'DELETED' && 'Product is marked as deleted and will not appear'}
-            </p>
-          </div>
-
-          {/* Quantity */}
-          <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity in Stock</Label>
-            <Input
-              id="quantity"
-              name="quantity"
-              type="number"
-              min="0"
-              value={formData.quantity}
-              onChange={handleChange}
-              required
-            />
           </div>
 
           {/* Error Messages */}
           {updateProduct.isError && (
             <p className="text-sm text-destructive">
               Failed to update product. Please try again.
-            </p>
-          )}
-          {updateInventory.isError && (
-            <p className="text-sm text-destructive">
-              Failed to update inventory. Please try again.
             </p>
           )}
 

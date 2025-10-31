@@ -63,7 +63,22 @@ const setUserFromToken = async (token) => {
 
   const checkAuth = async () => {
     try {
-      // Use fetch directly to avoid interceptor interference
+      // First, check if we have an existing token in sessionStorage
+      const existingToken = getAccessToken();
+      
+      if (existingToken) {
+        // Verify the token is still valid by trying to use it
+        try {
+          await setUserFromToken(existingToken);
+          console.log("Restored session from existing token");
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.log("Existing token invalid, attempting refresh");
+        }
+      }
+
+      // If no valid token, try to refresh
       const response = await fetch("http://localhost:18090/auth/refresh", {
         method: "POST",
         credentials: "include",
@@ -79,10 +94,11 @@ const setUserFromToken = async (token) => {
       const data = await response.json();
       setAccessToken(data.jwtToken);
       await setUserFromToken(data.jwtToken);
-      console.log("User is authenticated");
+      console.log("User is authenticated via refresh");
     } catch (error) {
-      console.log("No active session");
+      console.log("No active session:", error.message);
       clearAccessToken();
+      setUser(null);
     } finally {
       setLoading(false);
     }

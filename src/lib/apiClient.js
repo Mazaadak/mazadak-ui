@@ -10,23 +10,29 @@ const apiClient = axios.create({
   },
 });
 
-let accessToken = null;
-
+// Store access token in sessionStorage to survive page reloads
 export const setAccessToken = (token) => {
-  accessToken = token;
+  if (token) {
+    sessionStorage.setItem('accessToken', token);
+  } else {
+    sessionStorage.removeItem('accessToken');
+  }
 };
 
-export const getAccessToken = () => accessToken;
+export const getAccessToken = () => {
+  return sessionStorage.getItem('accessToken');
+};
 
 export const clearAccessToken = () => {
-  accessToken = null;
+  sessionStorage.removeItem('accessToken');
 };
 
 // attach access token interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },

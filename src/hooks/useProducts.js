@@ -47,7 +47,10 @@ export const useDeleteProduct = () => {
       productAPI.deleteProduct(productId),
     
     onSuccess: () => {
-      queryClient.invalidateQueries();
+      // Invalidate all product-related queries
+      queryClient.invalidateQueries(queryKeys.products.products);
+      queryClient.invalidateQueries(queryKeys.auctions.auctions);
+      queryClient.invalidateQueries(queryKeys.inventory.items);
     },
   });
 };

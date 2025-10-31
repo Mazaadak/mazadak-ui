@@ -68,6 +68,8 @@ export const useCancelAuction = () => {
     onSuccess: (data, auctionId) => {
       queryClient.invalidateQueries(queryKeys.auctions.auction(auctionId));
       queryClient.invalidateQueries(queryKeys.auctions.auctions);
+      // Also invalidate products since product type changes when auction is cancelled
+      queryClient.invalidateQueries(queryKeys.products.products);
     },
   });
 };
@@ -92,6 +94,31 @@ export const useResumeAuction = () => {
     onSuccess: (data, auctionId) => {
       queryClient.invalidateQueries(queryKeys.auctions.auction(auctionId));
       queryClient.invalidateQueries(queryKeys.auctions.auctions);
+    },
+  });
+};
+
+export const useDeleteAuction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (auctionId) => auctionAPI.deleteAuction(auctionId),
+    onSuccess: () => {
+      // Don't invalidate immediately - let the caller handle it with proper delay
+      // The backend needs time to process the AuctionDeletedEvent
+      console.log('Auction deleted successfully, backend processing event...');
+    },
+  });
+};
+
+export const useUpdateAuction = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ auctionId, data }) => auctionAPI.updateAuction(auctionId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(queryKeys.auctions.auctions);
+      queryClient.invalidateQueries(queryKeys.products.products);
     },
   });
 };

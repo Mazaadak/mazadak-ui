@@ -1,7 +1,7 @@
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, Link, Navigate } from "react-router-dom";
+import { useNavigate, Link, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -22,17 +22,68 @@ import { v4 as uuidv4 } from "uuid";
 import { productAPI } from "../api/products";
 
 export const CreateItemPage = () => {
-  const [step, setStep] = useState(0);
-  const [productId, setProductId] = useState(null);
-  const [type, setType] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize state from URL params
+  const [step, setStep] = useState(() => {
+    const stepParam = searchParams.get('step');
+    return stepParam ? parseInt(stepParam) : 0;
+  });
+  
+  const [productId, setProductId] = useState(() => searchParams.get('productId') || null);
+  
+  const [type, setType] = useState(() => {
+    const typeParam = searchParams.get('type');
+    return typeParam || null;
+  });
+  
   const [listingStatus, setListingStatus] = useState("idle"); // 'idle' | 'creating' | 'success' | 'failed'
   const [createdListingId, setCreatedListingId] = useState(null);
+  
+  // Relist data from URL (for prefilling auction form)
+  const [relistData, setRelistData] = useState(() => {
+    const relistParam = searchParams.get('relist');
+    if (relistParam) {
+      try {
+        return JSON.parse(decodeURIComponent(relistParam));
+      } catch (e) {
+        console.error('Failed to parse relist data:', e);
+        return null;
+      }
+    }
+    return null;
+  });
   
   const { mutate } = useCreateListing();
   const { user } = useAuth();
   const userId = user?.userId;
   const navigate = useNavigate();
   const idempotencyKeyRef = useRef(null);
+
+  // Update URL when state changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (step > 0) params.set('step', step.toString());
+    if (productId) params.set('productId', productId);
+    if (type) params.set('type', type);
+    if (relistData) params.set('relist', encodeURIComponent(JSON.stringify(relistData)));
+    
+    setSearchParams(params, { replace: true });
+  }, [step, productId, type, relistData, setSearchParams]);
+
+  // Reset state when navigating to clean URL (no params)
+  useEffect(() => {
+    const hasParams = searchParams.toString().length > 0;
+    if (!hasParams && (step !== 0 || productId || type || relistData)) {
+      setStep(0);
+      setProductId(null);
+      setType(null);
+      setRelistData(null);
+      setListingStatus('idle');
+      setCreatedListingId(null);
+    }
+  }, [searchParams]);
 
   // Calculate shouldPoll based on current state
   const shouldPoll = listingStatus === "creating" && !!createdListingId && !!idempotencyKeyRef.current;
@@ -168,7 +219,7 @@ export const CreateItemPage = () => {
         return <CreateFixedPriceForm onSubmit={onSubmit} />;
       }
       if (type === "auction") {
-        return <CreateAuctionForm onSubmit={onSubmit} />;
+        return <CreateAuctionForm onSubmit={onSubmit} initialData={relistData} />;
       }
     }
 

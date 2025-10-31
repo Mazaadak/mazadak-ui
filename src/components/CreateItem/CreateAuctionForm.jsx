@@ -86,7 +86,7 @@ const DateTimePicker = ({ date, onDateChange, time, onTimeChange, label, error, 
   );
 };
 
-const CreateAuctionForm = ({ onSubmit }) => {
+const CreateAuctionForm = ({ onSubmit, initialData }) => {
   const {
     control,
     handleSubmit,
@@ -96,10 +96,10 @@ const CreateAuctionForm = ({ onSubmit }) => {
   } = useForm({
     resolver: zodResolver(auctionFormSchema),
     defaultValues: {
-      title: "",
-      startingPrice: "",
-      reservePrice: "",
-      bidIncrement: "",
+      title: initialData?.title || "",
+      startingPrice: initialData?.startingPrice || "",
+      reservePrice: initialData?.reservePrice || "",
+      bidIncrement: initialData?.bidIncrement || "",
       startDate: undefined,
       startTime: "",
       endDate: undefined,
