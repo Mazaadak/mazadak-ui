@@ -2,6 +2,10 @@ export const queryKeys = {
     auctions: {
         auctions: ['auctions'],
         auction: (id) => ['auctions', id],
+        bids: (auctionId) => ['auctions', auctionId, 'bids'],
+        highestBid: (auctionId) => ['auctions', auctionId, 'highest-bid'],
+        bidderBids: (bidderId) => ['auctions', 'bidder', bidderId, 'bids'],
+        proxyBid: (auctionId, bidderId) => ['auctions', auctionId, 'proxy-bids', bidderId],
         watchlist: ['auctions', 'watchlist'],
     },
     products: {
@@ -24,12 +28,15 @@ export const queryKeys = {
     },
     inventory: {
         item: (id) => ['inventory', id],
-    },  
-
-  ratings: {
-    all: ['ratings'],
-    productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
-    userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
-    rating: (ratingId) => ['ratings', ratingId],
-  }
+    },
+    addresses: {
+        addresses: ['addresses'],
+        address: (id) => ['addresses', id],
+    },
+    ratings: {
+        all: ['ratings'],
+        productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
+        userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
+        rating: (ratingId) => ['ratings', ratingId],
+    }
 };

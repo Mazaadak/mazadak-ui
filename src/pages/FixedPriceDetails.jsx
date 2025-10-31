@@ -2,17 +2,19 @@ import { useProduct } from "../hooks/useProducts";
 import { useInventoryItem } from "../hooks/useInventory";
 import { useAddToCart } from "../hooks/useCart";
 import { useProductRatings } from "../hooks/useRatings";
+import { useUser } from "../hooks/useUsers";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
-import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare, User } from "lucide-react";
 import { useState } from "react";
 import { RatingForm } from "../components/RatingForm";
 import { RatingList } from "../components/RatingList";
 
-const ProductDetails = () => {
+const FixedPriceDetails = () => {
   const productId = useParams().productId;
   const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(0);
@@ -22,6 +24,7 @@ const ProductDetails = () => {
   console.log("Product ID:", productId);
   
   const { data: product, isLoading, error } = useProduct(productId);
+  const { data: seller } = useUser(product?.sellerId);
   const { data: inventoryItem } = useInventoryItem(productId);
   const { data: ratingsData, isLoading: ratingsLoading } = useProductRatings(productId, ratingsPage, 10);
   
@@ -75,8 +78,8 @@ const ProductDetails = () => {
                 The product you're looking for doesn't exist
               </p>
             </div>
-            <Button onClick={() => navigate('/products')}>
-              Browse Products
+            <Button onClick={() => navigate('/listings')}>
+              Browse Listings
             </Button>
           </CardContent>
         </Card>
@@ -194,6 +197,22 @@ const ProductDetails = () => {
             </div>
             
             <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
+            
+            {/* Seller Info */}
+            {seller && (
+              <div className="flex items-center gap-2 text-sm mb-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+                  <AvatarFallback className="text-xs">
+                    {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-muted-foreground">Sold by</span>
+                <span className="font-medium">
+                  {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+                </span>
+              </div>
+            )}
             
             {/* Rating */}
             {product.ratings && product.ratings.length > 0 && (
@@ -366,4 +385,4 @@ const ProductDetails = () => {
   );
 };
 
-export default ProductDetails;
+export default FixedPriceDetails;

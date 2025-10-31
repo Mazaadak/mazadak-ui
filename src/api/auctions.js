@@ -46,4 +46,34 @@ export const auctionAPI = {
 
     updateAuction: (auctionId, data) => 
         apiClient.put(`/auctions/${auctionId}`, data),
+
+    deleteAuction: (auctionId) => 
+        apiClient.delete(`/auctions/${auctionId}`),
+
+    // BID ENDPOINTS
+    placeBid: (auctionId, bidData, idempotencyKey) => 
+        apiClient.post(`/auctions/${auctionId}/bids`, bidData, {
+            headers: {
+                'Idempotency-Key': idempotencyKey
+            }
+        }),
+
+    getBids: (auctionId, params = {}) => 
+        apiClient.get(`/auctions/${auctionId}/bids`, { params }),
+
+    getHighestBid: (auctionId) => 
+        apiClient.get(`/auctions/${auctionId}/bids/highest`),
+
+    getBidderBids: (bidderId, params = {}) => 
+        apiClient.get(`/auctions/bidder/${bidderId}/bids`, { params }),
+
+    // PROXY BID ENDPOINTS
+    createOrUpdateProxyBid: (auctionId, bidderId, proxyBidData) => 
+        apiClient.put(`/auctions/${auctionId}/proxy-bids/${bidderId}`, proxyBidData),
+
+    getProxyBid: (auctionId, bidderId) => 
+        apiClient.get(`/auctions/${auctionId}/proxy-bids/${bidderId}`),
+
+    deleteProxyBid: (auctionId, bidderId) => 
+        apiClient.delete(`/auctions/${auctionId}/proxy-bids/${bidderId}`),
 }

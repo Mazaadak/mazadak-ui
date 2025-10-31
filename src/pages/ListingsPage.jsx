@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, SlidersHorizontal, Clock, Tag, TrendingUp, ShoppingCart, Eye, ChevronLeft, ChevronRight, Bell, Loader2 } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, Clock, Tag, TrendingUp, ShoppingCart, Eye, ChevronLeft, ChevronRight, Bell, Loader2, User } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -13,10 +14,179 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useAuctions, useWatchlist, useWatchAuction, useUnwatchAuction } from '@/hooks/useAuctions';
 import { useAddToCart } from '../hooks/useCart';
+import { useUser } from '../hooks/useUsers';
 import { toast } from 'sonner';
 
+// Auction Card Component
+const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, isAuctionWatched, handleToggleWatch }) => {
+  const { data: seller } = useUser(auction.sellerId);
+  
+  return (
+    <Card 
+      key={auction.id} 
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      onClick={() => navigate(`/auctions/${auction.id}`)}
+    >
+      <div className="relative aspect-square bg-muted">
+        <div className="absolute top-2 left-2 z-10">
+          <Badge variant={getStatusVariant(auction.status)} className="text-xs">
+            {auction.status}
+          </Badge>
+        </div>
+        <div className="absolute top-2 right-2 z-10">
+          <Badge variant="secondary" className="bg-black/70 text-white hover:bg-black/80 text-xs">
+            <Clock className="h-3 w-3 mr-1" />
+            {getTimeRemaining(auction.endTime)}
+          </Badge>
+        </div>
+        {auction.product?.images?.[0]?.imageUri && (
+          <img 
+            src={auction.product.images[0].imageUri} 
+            alt={auction.title}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      <CardHeader className="p-3 pb-2">
+        <h3 className="font-semibold text-sm truncate">{auction.title || auction.product?.title}</h3>
+        {seller && (
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarFallback className="text-[10px]">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-muted-foreground">Sold by</span>
+            <span className="font-medium">
+              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+            </span>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="p-3 pt-0 pb-2">
+        {auction.highestBidPlaced ? (
+          <div className="space-y-0.5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold">
+                ${auction.highestBidPlaced.amount?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-green-600">
+              <TrendingUp className="h-3 w-3" />
+              <span>Current bid</span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-0.5">
+            <div className="text-lg font-bold">
+              ${auction.startingPrice?.toFixed(2) || '0.00'}
+            </div>
+            <div className="text-xs text-muted-foreground">starting bid</div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="p-3 pt-0">
+        {auction.status === 'SCHEDULED' ? (
+          <Button 
+            className="w-full h-8 text-xs" 
+            size="sm"
+            variant={isAuctionWatched(auction.id) ? "default" : "outline"}
+            onClick={(e) => handleToggleWatch(auction.id, isAuctionWatched(auction.id), e)}
+          >
+            <Bell className="h-3 w-3 mr-1" />
+            {isAuctionWatched(auction.id) ? 'Unwatch' : 'Watch'}
+          </Button>
+        ) : (
+          <Button 
+            className="w-full h-8 text-xs" 
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/auctions/${auction.id}`);
+            }}
+          >
+            View Details
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+};
 
-// TODO: seller name
+// Fixed Price Card Component
+const FixedPriceCardItem = ({ product, navigate, handleAddToCart }) => {
+  const { data: seller } = useUser(product.sellerId);
+  const avgRating = product.ratings?.length > 0
+    ? product.ratings.reduce((sum, r) => sum + r.rating, 0) / product.ratings.length
+    : 0;
+  
+  return (
+    <Card 
+      key={product.productId} 
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      onClick={() => navigate(`/fixed-price/${product.productId}`)}
+    >
+      <div className="relative aspect-square bg-muted">
+        {avgRating > 0 && (
+          <div className="absolute top-2 left-2 z-10">
+            <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 text-xs">
+              ★ {avgRating.toFixed(1)}
+            </Badge>
+          </div>
+        )}
+        {product.images?.[0]?.imageUri && (
+          <img 
+            src={product.images[0].imageUri} 
+            alt={product.title}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      <CardHeader className="p-3 pb-2">
+        <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+        {seller && (
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarFallback className="text-[10px]">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-muted-foreground">Sold by</span>
+            <span className="font-medium">
+              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+            </span>
+          </div>
+        )}
+      </CardHeader>
+      <CardContent className="p-3 pt-0 pb-2">
+        <span className="text-lg font-bold">
+          ${product.price?.toFixed(2) || '0.00'}
+        </span>
+      </CardContent>
+      <CardFooter className="p-3 pt-0 flex-col gap-2">
+        <Button 
+          className="w-full h-8 text-xs" 
+          size="sm"
+          variant="outline"
+          onClick={(e) => { e.stopPropagation(); navigate(`/fixed-price/${product.productId}`); }}
+        >
+          <Eye className="h-3 w-3 mr-1" />
+          View Details
+        </Button>
+        <Button 
+          className="w-full h-8 text-xs" 
+          size="sm"
+          onClick={(e) => handleAddToCart(product.productId, e)}
+        >
+          <ShoppingCart className="h-3 w-3 mr-1" />
+          Add to Cart
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
 
 const ListingsPage = () => {
   const navigate = useNavigate();
@@ -622,79 +792,15 @@ const ListingsPage = () => {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {auctions.map(auction => (
-                    <Card 
-                      key={auction.id} 
-                      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-                      onClick={() => navigate(`/auctions/${auction.id}`)}
-                    >
-                      <div className="relative aspect-square bg-muted">
-                        <div className="absolute top-2 left-2 z-10">
-                          <Badge variant={getStatusVariant(auction.status)} className="text-xs">
-                            {auction.status}
-                          </Badge>
-                        </div>
-                        <div className="absolute top-2 right-2 z-10">
-                          <Badge variant="secondary" className="bg-black/70 text-white hover:bg-black/80 text-xs">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {getTimeRemaining(auction.endTime)}
-                          </Badge>
-                        </div>
-                        {auction.product?.images?.[0]?.imageUri && (
-                          <img 
-                            src={auction.product.images[0].imageUri} 
-                            alt={auction.title}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <CardHeader className="p-3 pb-2">
-                        <h3 className="font-semibold text-sm truncate">{auction.title || auction.product?.title}</h3>
-                        <p className="text-xs text-muted-foreground">by {auction.sellerName || 'Seller'}</p>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0 pb-2">
-                        {auction.highestBidPlaced ? (
-                          <div className="space-y-0.5">
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-lg font-bold">
-                                ${auction.highestBidPlaced.amount?.toFixed(2) || '0.00'}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1 text-xs text-green-600">
-                              <TrendingUp className="h-3 w-3" />
-                              <span>Current bid</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-0.5">
-                            <div className="text-lg font-bold">
-                              ${auction.startingPrice?.toFixed(2) || '0.00'}
-                            </div>
-                            <div className="text-xs text-muted-foreground">starting bid</div>
-                          </div>
-                        )}
-                      </CardContent>
-                      <CardFooter className="p-3 pt-0">
-                        {auction.status === 'SCHEDULED' ? (
-                          <Button 
-                            className="w-full h-8 text-xs" 
-                            size="sm"
-                            variant={isAuctionWatched(auction.id) ? "default" : "outline"}
-                            onClick={(e) => handleToggleWatch(auction.id, isAuctionWatched(auction.id), e)}
-                          >
-                            <Bell className="h-3 w-3 mr-1" />
-                            {isAuctionWatched(auction.id) ? 'Unwatch' : 'Watch'}
-                          </Button>
-                        ) : (
-                          <Button 
-                            className="w-full h-8 text-xs" 
-                            size="sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View Details
-                          </Button>
-                        )}
-                      </CardFooter>
-                    </Card>
+                    <AuctionCardItem
+                      key={auction.id}
+                      auction={auction}
+                      navigate={navigate}
+                      getStatusVariant={getStatusVariant}
+                      getTimeRemaining={getTimeRemaining}
+                      isAuctionWatched={isAuctionWatched}
+                      handleToggleWatch={handleToggleWatch}
+                    />
                   ))}
                 </div>
                 <Pagination
@@ -735,64 +841,14 @@ const ListingsPage = () => {
             ) : products.length > 0 ? (
               <>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {products.map(product => {
-                    const avgRating = product.ratings?.length > 0
-                      ? product.ratings.reduce((sum, r) => sum + r.rating, 0) / product.ratings.length
-                      : 0;
-                    
-                    return (
-                      <Card 
-                        key={product.productId} 
-                        className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-                        onClick={() => navigate(`/products/${product.productId}`)}
-                      >
-                        <div className="relative aspect-square bg-muted">
-                          {avgRating > 0 && (
-                            <div className="absolute top-2 left-2 z-10">
-                              <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 text-xs">
-                                ★ {avgRating.toFixed(1)}
-                              </Badge>
-                            </div>
-                          )}
-                          {product.images?.[0]?.imageUri && (
-                            <img 
-                              src={product.images[0].imageUri} 
-                              alt={product.title}
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                        <CardHeader className="p-3 pb-2">
-                          <h3 className="font-semibold text-sm truncate">{product.title}</h3>
-                          <p className="text-xs text-muted-foreground">by {product.sellerName || 'Seller'}</p>
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0 pb-2">
-                          <span className="text-lg font-bold">
-                            ${product.price?.toFixed(2) || '0.00'}
-                          </span>
-                        </CardContent>
-                        <CardFooter className="p-3 pt-0 flex-col gap-2">
-                          <Button 
-                            className="w-full h-8 text-xs" 
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => { e.stopPropagation(); navigate(`/products/${product.productId}`); }}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View Details
-                          </Button>
-                          <Button 
-                            className="w-full h-8 text-xs" 
-                            size="sm"
-                            onClick={(e) => handleAddToCart(product.productId, e)}
-                          >
-                            <ShoppingCart className="h-3 w-3 mr-1" />
-                            Add to Cart
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    );
-                  })}
+                  {products.map(product => (
+                    <FixedPriceCardItem
+                      key={product.productId}
+                      product={product}
+                      navigate={navigate}
+                      handleAddToCart={handleAddToCart}
+                    />
+                  ))}
                 </div>
                 <Pagination
                   currentPage={productPage}

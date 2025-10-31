@@ -9,4 +9,51 @@ export const useUser = (userId) => {
     enabled: !!userId,
   })
 };
-    
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ userId, updateData }) => usersAPI.updateUser(userId, updateData),
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.user(variables.userId) });
+    },
+  });
+};
+
+export const useUploadPersonalPhoto = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ userId, file }) => usersAPI.uploadPersonalPhoto(userId, file),
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch user data
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.user(variables.userId) });
+    },
+  });
+};
+
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: ({ userId, oldPassword, newPassword }) => 
+      usersAPI.changePassword(userId, oldPassword, newPassword),
+  });
+};
+
+export const useSendEmailOtp = () => {
+  return useMutation({
+    mutationFn: ({ userId, email }) => usersAPI.sendEmailOtp(userId, email),
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (userId) => usersAPI.deleteUser(userId),
+    onSuccess: () => {
+      // Clear all queries after account deletion
+      queryClient.clear();
+    },
+  });
+};

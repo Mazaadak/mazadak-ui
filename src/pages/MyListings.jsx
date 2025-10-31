@@ -9,10 +9,12 @@ import {
   useDeleteAuction 
 } from '../hooks/useAuctions';
 import { useInventoryItem, useDeleteInventoryItem } from '../hooks/useInventory';
+import { useUser } from '../hooks/useUsers';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Tooltip,
   TooltipContent,
@@ -42,7 +44,8 @@ import {
   XCircle,
   Clock,
   TrendingUp,
-  Loader2
+  Loader2,
+  User
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -633,13 +636,14 @@ const AuctionSection = ({ title, auctions, onDelete, onPause, onResume, onCancel
 const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
   const navigate = useNavigate();
   const { data: inventory } = useInventoryItem(product.productId);
+  const { data: seller } = useUser(product.sellerId);
   const stock = inventory ? (inventory.totalQuantity - inventory.reservedQuantity) : 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
       <div 
         className="relative aspect-square bg-muted"
-        onClick={() => navigate(`/products/${product.productId}`)}
+        onClick={() => navigate(`/fixed-price/${product.productId}`)}
       >
         {product.images?.[0]?.imageUri ? (
           <img 
@@ -661,6 +665,20 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
       
       <CardHeader className="p-3 pb-2">
         <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+        {seller && (
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarFallback className="text-[10px]">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-muted-foreground">Sold by</span>
+            <span className="font-medium">
+              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+            </span>
+          </div>
+        )}
         <p className="text-lg font-bold">${product.price?.toFixed(2) || '0.00'}</p>
       </CardHeader>
       
@@ -672,7 +690,7 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
                 className="flex-1 h-8 text-xs" 
                 size="sm"
                 variant="outline"
-                onClick={() => navigate(`/products/${product.productId}`)}
+                onClick={() => navigate(`/fixed-price/${product.productId}`)}
               >
                 <Eye className="h-3 w-3 mr-1" />
                 View
@@ -738,6 +756,7 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
 
 const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist, onEdit }) => {
   const navigate = useNavigate();
+  const { data: seller } = useUser(auction.sellerId);
   
   const getTimeRemaining = (endTime) => {
     const diff = new Date(endTime) - new Date();
@@ -804,6 +823,20 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
         <h3 className="font-semibold text-sm truncate">
           {auction.title || auction.product?.title}
         </h3>
+        {seller && (
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarFallback className="text-[10px]">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-muted-foreground">Sold by</span>
+            <span className="font-medium">
+              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+            </span>
+          </div>
+        )}
         <div className="space-y-1">
           {auction.highestBidPlaced ? (
             <div>
@@ -984,12 +1017,12 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
 
 const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
   const navigate = useNavigate();
+  const { data: seller } = useUser(product.sellerId);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div 
         className="relative aspect-square bg-muted"
-        onClick={() => navigate(`/products/${product.productId}`)}
       >
         {product.images?.[0]?.imageUri ? (
           <img 
@@ -1009,6 +1042,20 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
       
       <CardHeader className="p-3 pb-2">
         <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+        {seller && (
+          <div className="flex items-center gap-2 text-xs mb-1">
+            <Avatar className="h-5 w-5">
+              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarFallback className="text-[10px]">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-muted-foreground">Sold by</span>
+            <span className="font-medium">
+              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
+            </span>
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           Not currently listed for sale
         </p>
