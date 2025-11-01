@@ -460,10 +460,16 @@ const AuctionDetails = () => {
                 <TabsTrigger value="manual">Manual Bid</TabsTrigger>
                 <TabsTrigger value="proxy">Auto Bid</TabsTrigger>
               </TabsList>
-              <TabsContent value="manual">
+              <TabsContent 
+                value="manual" 
+                className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+              >
                 <BidForm auction={auction} userId={user.userId} />
               </TabsContent>
-              <TabsContent value="proxy">
+              <TabsContent 
+                value="proxy" 
+                className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+              >
                 <ProxyBidForm auction={auction} userId={user.userId} />
               </TabsContent>
             </Tabs>
