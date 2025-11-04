@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, CreditCard, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import ProductSelectionStep from "../components/CreateItem/ProductSelectionStep";
 import ListingTypeStep from "../components/CreateItem/ListingTypeStep";
@@ -20,6 +20,8 @@ import ProductCard from "../components/CreateItem/ProductCard";
 import { useCreateListing, useListingStatus, useProduct } from "../hooks/useProducts";
 import { v4 as uuidv4 } from "uuid";
 import { productAPI } from "../api/products";
+import { useStripeAccount, useGetStripeOAuthUrl } from "../hooks/usePayments";
+import { Loader2 } from "lucide-react";
 
 export const CreateItemPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,6 +61,30 @@ export const CreateItemPage = () => {
   const userId = user?.userId;
   const navigate = useNavigate();
   const idempotencyKeyRef = useRef(null);
+  
+  // Check if user has connected Stripe account
+  const { data: stripeAccount, isLoading: isLoadingStripe, error: stripeError } = useStripeAccount(userId);
+  const getStripeOAuthUrl = useGetStripeOAuthUrl();
+  const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false);
+
+  // Handle Stripe onboarding redirect
+  const handleStripeOnboarding = async () => {
+    try {
+      setIsRedirectingToStripe(true);
+      const response = await getStripeOAuthUrl.mutateAsync(userId);
+      console.log('Stripe OAuth response:', response);
+      const oauthUrl = response?.onboardingUrl || response?.url || response?.data?.onboardingUrl || response?.data?.url;
+      if (oauthUrl && typeof oauthUrl === 'string') {
+        window.location.href = oauthUrl;
+      } else {
+        console.error('Invalid OAuth URL received:', response);
+        setIsRedirectingToStripe(false);
+      }
+    } catch (error) {
+      console.error('Failed to get Stripe OAuth URL:', error);
+      setIsRedirectingToStripe(false);
+    }
+  };
 
   // Update URL when state changes
   useEffect(() => {
@@ -309,6 +335,82 @@ export const CreateItemPage = () => {
     if (step === 3 && listingStatus !== "idle" && listingStatus !== "creating") return 100;
     return 66;
   };
+
+  // Show loading while checking Stripe account
+  if (isLoadingStripe) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <Card className="w-full sm:max-w-md">
+          <CardContent className="p-6">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+              <h2 className="text-lg font-semibold">Checking account status...</h2>
+              <p className="text-muted-foreground text-sm">Please wait while we verify your payment information.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show Stripe onboarding prompt if no account connected
+  if (!stripeAccount || stripeError) {
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <Card className="w-full sm:max-w-md">
+          <CardHeader>
+            <div className="flex justify-center mb-4">
+              <div className="rounded-full h-16 w-16 bg-primary/10 flex items-center justify-center">
+                <CreditCard className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <CardTitle className="text-center text-2xl">Connect Your Payment Account</CardTitle>
+            <CardDescription className="text-center">
+              To create listings and receive payments, you need to connect your Stripe account first.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Why do I need this?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Stripe securely handles all payments between buyers and sellers. You'll need to provide your payment information to receive earnings from your sales.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={handleStripeOnboarding}
+              disabled={isRedirectingToStripe}
+            >
+              {isRedirectingToStripe ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Redirecting to Stripe...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Connect Stripe Account
+                </>
+              )}
+            </Button>
+            <Button 
+              variant="ghost" 
+              className="w-full"
+              onClick={() => navigate('/settings')}
+            >
+              Go to Settings
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">

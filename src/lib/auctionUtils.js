@@ -1,21 +1,19 @@
 import { format, formatDistanceToNow, differenceInSeconds } from 'date-fns';
-import { toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 
 const EGYPT_TIMEZONE = 'Africa/Cairo';
 
 /**
- * Convert UTC date to Egypt timezone
- */
-export const toEgyptTime = (date) => {
-  return toZonedTime(date, EGYPT_TIMEZONE);
-};
-
-/**
  * Format date in Egypt timezone
+ * Properly converts UTC datetime to Egypt timezone
+ * Backend sends datetime without Z suffix, so we append it to indicate UTC
  */
-export const formatEgyptTime = (date, formatStr = 'PPpp') => {
-  const egyptTime = toEgyptTime(date);
-  return format(egyptTime, formatStr);
+export const formatEgyptTime = (date, formatStr = 'MMM dd, h:mm a') => {
+  if (!date) return '';
+  // Backend sends UTC time without Z suffix (e.g., "2025-11-01T21:35:00")
+  // We need to append Z to indicate it's UTC, otherwise it's treated as local time
+  const utcDate = typeof date === 'string' && !date.endsWith('Z') ? `${date}Z` : date;
+  return formatInTimeZone(utcDate, EGYPT_TIMEZONE, formatStr);
 };
 
 /**
@@ -23,7 +21,9 @@ export const formatEgyptTime = (date, formatStr = 'PPpp') => {
  */
 export const getTimeRemaining = (endTime) => {
   const now = new Date();
-  const end = new Date(endTime);
+  // Backend sends UTC time without Z suffix, so we append it
+  const endTimeUTC = typeof endTime === 'string' && !endTime.endsWith('Z') ? `${endTime}Z` : endTime;
+  const end = new Date(endTimeUTC);
   const seconds = differenceInSeconds(end, now);
   
   if (seconds <= 0) {
@@ -91,7 +91,9 @@ export const isAuctionActive = (auction) => {
  */
 export const isAuctionEnded = (auction) => {
   if (!auction) return false;
-  return auction.status === 'ENDED' || new Date(auction.endTime) < new Date();
+  // Backend sends UTC time without Z suffix, so we append it
+  const endTime = auction.endTime.endsWith('Z') ? auction.endTime : `${auction.endTime}Z`;
+  return auction.status === 'ENDED' || new Date(endTime) < new Date();
 };
 
 /**

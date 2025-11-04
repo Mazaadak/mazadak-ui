@@ -94,7 +94,7 @@ const AuctionDetails = () => {
   // - If not winning but has bids: show their most recent bid from history (includes proxy bids)
   // - Otherwise: null
   const userLastBid = isUserWinning 
-    ? auction.highestBidPlaced 
+    ? auction?.highestBidPlaced 
     : (userBidsFromHistory.length > 0 ? userBidsFromHistory[0] : null); // First item is most recent due to sorting
 
   const isLoading = isLoadingAuction || isLoadingProduct;

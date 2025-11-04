@@ -38,5 +38,14 @@ export const queryKeys = {
         productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
         userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
         rating: (ratingId) => ['ratings', ratingId],
+    },
+    orders: {
+        orders: ['orders'],
+        order: (id) => ['orders', id],
+        list: (filters, page, size, sort) => ['orders', 'list', filters, page, size, sort],
+        checkoutStatus: (orderId) => ['orders', orderId, 'checkout-status'],
+    },
+    payments: {
+        stripeAccount: (sellerId) => ['payments', 'stripe-account', sellerId],
     }
 };
