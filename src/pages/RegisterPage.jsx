@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter} from '../components/ui/card';
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, UserPlus, User, Mail, Lock, Phone, Calendar as CalendarIcon, Users } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import {
   Popover,
@@ -43,11 +43,7 @@ const registerSchema = z.object({
   .email('Invalid email address'),
   password: z
   .string()
-  .min(8, 'Password must be at least 8 characters long')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number')
-  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  .min(8, 'Password must be at least 8 characters long'),
   phoneNumber: z
   .string()
   .min(10, 'Phone number must be at least 10 digits long'),
@@ -98,11 +94,20 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh]">
-      <Card className="w-full sm:max-w-md">
-        <CardHeader>
-          <CardTitle>Create New Account</CardTitle>
-          <CardDescription>Create an account to access Mazadak</CardDescription>
+    <div className="flex items-center justify-center min-h-[80vh] py-8">
+      <Card className="w-full sm:max-w-md shadow-lg">
+        <CardHeader className="space-y-3">
+          <div className="flex items-center justify-center mb-2">
+            <div className="p-3 rounded-2xl bg-primary/10">
+              <UserPlus className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <CardTitle className="text-3xl text-center font-bold">
+            Create New Account
+          </CardTitle>
+          <CardDescription className="text-center text-base">
+            Join Mazadak and start your journey today
+          </CardDescription>
         </CardHeader>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent>
@@ -303,19 +308,30 @@ export const RegisterPage = () => {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Field>
-              <Link to="/login" className="text-sm hover:underline">
-                Already have an account? Log in
-              </Link>
-            </Field>
-            <Field>
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-11 text-base font-semibold" 
                 disabled={form.formState.isSubmitting}
               >
-                {form.formState.isSubmitting ? 'Creating an account...' : 'Create an Account'}
+                {form.formState.isSubmitting ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    Creating your account...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
+                  </>
+                )}
               </Button>
             </Field>
+            <div className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link to="/login" className="text-primary hover:underline font-semibold">
+                Log in
+              </Link>
+            </div>
           </CardFooter>
         </form>
       </Card>

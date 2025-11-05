@@ -5,7 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { Clock, RefreshCw } from 'lucide-react';
+import { Clock, RefreshCw, ShieldCheck, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import apiClient from '../lib/apiClient';
 
@@ -137,9 +137,14 @@ export const VerifyPage = () => {
 
   return (
     <div className="flex items-center justify-center min-h-[80vh]">
-      <Card className="w-full sm:max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+      <Card className="w-full sm:max-w-md shadow-lg">
+        <CardHeader className="space-y-3">
+          <div className="flex items-center justify-center mb-2">
+            <div className="p-3 rounded-2xl bg-primary/10">
+              <ShieldCheck className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <CardTitle className="flex items-center justify-between text-2xl font-bold">
             <span>{pageTitle}</span>
             <Badge 
               variant={timeLeft > 60 ? "secondary" : "destructive"} 
@@ -149,10 +154,18 @@ export const VerifyPage = () => {
               {formatTime(timeLeft)}
             </Badge>
           </CardTitle>
-          <CardDescription>{pageDescription}</CardDescription>
+          <CardDescription className="text-center text-base">
+            {pageDescription}
+          </CardDescription>
+          {email && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-2 mt-2">
+              <Mail className="h-4 w-4" />
+              <span className="font-medium">{email}</span>
+            </div>
+          )}
           {timeLeft === 0 && (
-            <p className="text-sm text-destructive font-medium mt-2">
-              OTP has expired. Please request a new one.
+            <p className="text-sm text-destructive font-medium mt-2 text-center bg-destructive/10 rounded-lg p-3 border border-destructive/20">
+              ⚠️ OTP has expired. Please request a new one.
             </p>
           )}
         </CardHeader>
@@ -172,16 +185,19 @@ export const VerifyPage = () => {
                         disabled={timeLeft === 0}
                       >
                           <InputOTPGroup className="w-full">
-                            <InputOTPSlot index={0} className="flex-1 h-12 text-lg" />
-                            <InputOTPSlot index={1} className="flex-1 h-12 text-lg" />
-                            <InputOTPSlot index={2} className="flex-1 h-12 text-lg" />
-                            <InputOTPSlot index={3} className="flex-1 h-12 text-lg" />
-                            <InputOTPSlot index={4} className="flex-1 h-12 text-lg" />
-                            <InputOTPSlot index={5} className="flex-1 h-12 text-lg" />
+                            <InputOTPSlot index={0} className="flex-1 h-14 text-xl font-bold" />
+                            <InputOTPSlot index={1} className="flex-1 h-14 text-xl font-bold" />
+                            <InputOTPSlot index={2} className="flex-1 h-14 text-xl font-bold" />
+                            <InputOTPSlot index={3} className="flex-1 h-14 text-xl font-bold" />
+                            <InputOTPSlot index={4} className="flex-1 h-14 text-xl font-bold" />
+                            <InputOTPSlot index={5} className="flex-1 h-14 text-xl font-bold" />
                           </InputOTPGroup>
                       </InputOTP>
                       {fieldState.invalid && (
-                        <FieldError>{fieldState.error?.message}</FieldError>
+                        <FieldError className="flex items-center gap-1.5 mt-2">
+                          <span className="h-1 w-1 rounded-full bg-destructive" />
+                          {fieldState.error?.message}
+                        </FieldError>
                       )}
                     </Field>
                   )}
@@ -196,7 +212,7 @@ export const VerifyPage = () => {
                 size="sm"
                 onClick={handleResendOtp}
                 disabled={isResending || timeLeft > 0}
-                className="text-sm"
+                className="text-sm font-medium"
               >
                 {isResending ? (
                   <>
@@ -211,7 +227,7 @@ export const VerifyPage = () => {
                 )}
               </Button>
               {!isForgotPassword && (
-                <Link to="/login" className="text-sm hover:underline text-muted-foreground">
+                <Link to="/login" className="text-sm hover:underline text-muted-foreground font-medium">
                   Back to Login
                 </Link>
               )}
@@ -219,14 +235,21 @@ export const VerifyPage = () => {
             <Field>
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full h-11 text-base font-semibold" 
                 disabled={form.formState.isSubmitting || timeLeft === 0}
               >
                 {form.formState.isSubmitting 
-                  ? 'Verifying...' 
-                  : isForgotPassword 
-                    ? 'Verify OTP' 
-                    : 'Verify Account'}
+                  ? (
+                    <>
+                      <div className="h-4 w-4 mr-2 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      {isForgotPassword ? 'Verify OTP' : 'Verify Account'}
+                    </>
+                  )}
               </Button>
             </Field>
           </CardFooter>
