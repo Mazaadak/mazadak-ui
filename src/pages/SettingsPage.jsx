@@ -393,7 +393,7 @@ export const SettingsPage = () => {
           </Card>
 
           {/* Delete Account - Danger Zone */}
-          <Card className="border-2 border-red-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+          {/* <Card className="border-2 border-red-200 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
             <CardHeader className="pb-4 border-b border-red-200 bg-gradient-to-r from-red-50 to-transparent">
               <CardTitle className="text-xl font-bold flex items-center gap-3">
                 <div className="p-2.5 bg-red-100 rounded-lg shadow-sm">
@@ -425,7 +425,7 @@ export const SettingsPage = () => {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
         </div>
       </div>
