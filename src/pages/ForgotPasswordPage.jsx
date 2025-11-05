@@ -43,7 +43,7 @@ export const ForgotPasswordPage = () => {
               {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+              {isSubmitting ? 'Sending...' : 'Send Reset Code'}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm space-y-2">

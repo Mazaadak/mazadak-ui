@@ -4,12 +4,14 @@ import { getAccessToken, setAccessToken, clearAccessToken } from "../lib/apiClie
 import { useUser } from "../hooks/useUsers";
 import { usersAPI } from "../api/users";
 import { data } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const decodeToken = (token) => {
   if (!token) return null;
@@ -105,10 +107,30 @@ const setUserFromToken = async (token) => {
   };
 
   const login = async (username, password) => {
-    const response = await apiClient.post("/auth/login", { username, password });
-    setAccessToken(response.jwtToken);
-    await setUserFromToken(response.jwtToken);
-    return response;
+    try {
+      const response = await apiClient.post("/auth/login", { username, password });
+      setAccessToken(response.jwtToken);
+      await setUserFromToken(response.jwtToken);
+      return response;
+    } catch (error) {
+      // Check if error response indicates unverified email
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.message || errorData?.error || error.message || '';
+      
+      // Check for unverified email error (403 status and specific error message/code)
+      if (error.response?.status === 403 && 
+          (errorData?.error === 'EMAIL_NOT_VERIFIED' || 
+           errorMessage.toLowerCase().includes('not verified') || 
+           errorMessage.toLowerCase().includes('verify'))) {
+        throw { 
+          type: 'UNVERIFIED_EMAIL', 
+          message: errorMessage,
+          email: errorData?.email, // Backend should provide this
+          username: username
+        };
+      }
+      throw error;
+    }
   };
 
   const register = async (userData) => {
@@ -131,6 +153,8 @@ const setUserFromToken = async (token) => {
     } finally {
       clearAccessToken();
       setUser(null);
+      // Invalidate all React Query cache
+      queryClient.clear();
     }
   };
 

@@ -7,6 +7,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Button } from '../components/ui/button';
+import { toast } from 'sonner';
+import apiClient from '../lib/apiClient';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -16,6 +18,7 @@ const loginSchema = z.object({
 export const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
   });
@@ -26,6 +29,36 @@ export const LoginPage = () => {
       navigate('/');
     } catch (error) {
       console.log('Login failed:', error);
+      
+      if (error.type === 'UNVERIFIED_EMAIL') {
+        // Try to get email from sessionStorage (stored during registration)
+        const storedEmail = sessionStorage.getItem(`pending_verification_${data.username}`);
+        const emailToUse = error.email || storedEmail || data.username;
+        
+        try {
+          // Send OTP before redirecting
+          await apiClient.post(`/users/new-otp/${encodeURIComponent(emailToUse)}`);
+          
+          toast.success('Verification Required', {
+            description: 'A new OTP has been sent to your email.',
+            duration: 4000,
+          });
+        } catch (otpError) {
+          console.error('Failed to send OTP:', otpError);
+          // Still redirect even if OTP send fails - user can resend from verify page
+          toast.error('Email Not Verified', {
+            description: 'Please verify your email. You can resend OTP from the verification page.',
+            duration: 5000,
+          });
+        }
+        
+        // Redirect to verification page
+        navigate(`/verify?email=${encodeURIComponent(emailToUse)}&type=registration`);
+      } else {
+        toast.error('Login Failed', {
+          description: 'Invalid username or password.',
+        });
+      }
     }
   };
 

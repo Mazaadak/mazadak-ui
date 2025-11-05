@@ -87,6 +87,10 @@ export const RegisterPage = () => {
       console.log('Form data:', payload);
       await registerAuth(payload);
       console.log('Registration successful');
+      
+      // Store email-username mapping for potential re-verification
+      sessionStorage.setItem(`pending_verification_${data.username}`, data.email);
+      
       navigate(`/verify?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
       console.log('Registration failed:', error);
