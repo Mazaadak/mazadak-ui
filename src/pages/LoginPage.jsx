@@ -27,7 +27,15 @@ export const LoginPage = () => {
   const onSubmit = async (data) => {
     try {
       await login(data.username, data.password);
-      navigate('/');
+      
+      // Check if there's a saved redirect destination
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath);
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       console.log('Login failed:', error);
       

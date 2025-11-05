@@ -12,6 +12,7 @@ import { UpdateBirthdateDialog } from '../components/UpdateBirthdateDialog';
 import { UpdatePhotoDialog } from '../components/UpdatePhotoDialog';
 import { UpdatePasswordDialog } from '../components/UpdatePasswordDialog';
 import { DeleteAccountDialog } from '../components/DeleteAccountDialog';
+import { AddressManagementModal } from '../components/AddressManagementModal';
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { useStripeAccount, useGetStripeOAuthUrl } from '../hooks/usePayments';
@@ -25,6 +26,7 @@ export const SettingsPage = () => {
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false);
 
   // Check Stripe account status
@@ -293,7 +295,7 @@ export const SettingsPage = () => {
               <Button 
                 variant="outline" 
                 className="w-full justify-between h-16 text-base font-medium hover:bg-primary/5 hover:border-primary/30 transition-all group shadow-sm hover:shadow"
-                onClick={() => navigate('/address')}
+                onClick={() => setIsAddressModalOpen(true)}
               >
                 <span className="flex items-center gap-3">
                   <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-all duration-200 shadow-sm">
@@ -435,6 +437,7 @@ export const SettingsPage = () => {
       <UpdatePhotoDialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen} />
       <UpdatePasswordDialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen} />
       <DeleteAccountDialog open={isDeleteAccountDialogOpen} onOpenChange={setIsDeleteAccountDialogOpen} />
+      <AddressManagementModal open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen} />
     </div>
   );
 };

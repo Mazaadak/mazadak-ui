@@ -118,7 +118,14 @@ export const VerifyPage = () => {
       if (type === 'forgot-password') {
         navigate("/reset-password?email=" + encodeURIComponent(email));
       } else {
-        navigate("/login");
+        // Check if there's a saved redirect after verification
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          // Keep it for after login
+          navigate("/login");
+        } else {
+          navigate("/login");
+        }
       }
       console.log(email + ' ' + data.otp + ' Verification successful');
     } catch (error) {

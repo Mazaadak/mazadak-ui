@@ -14,7 +14,7 @@ import { Badge } from '../components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Label } from '../components/ui/label';
 import { ArrowLeft, Package, MapPin, CreditCard, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AddressManagementModal } from '../components/AddressManagementModal';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
@@ -84,9 +84,10 @@ export const CheckoutPage = () => {
   const [orderId, setOrderId] = useState(null);
   const [clientSecret, setClientSecret] = useState(null);
   const [error, setError] = useState(null);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const { data: cartItems = [], isLoading: isLoadingCart } = useCartItems();
-  const { data: addresses = [], isLoading: isLoadingAddresses } = useAddresses();
+  const { data: addresses = [], isLoading: isLoadingAddresses, refetch: refetchAddresses } = useAddresses();
   const checkout = useCheckout();
   const createPaymentIntent = useCreatePaymentIntent();
   
@@ -291,8 +292,8 @@ export const CheckoutPage = () => {
                 {addresses.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">You haven't added any addresses yet</p>
-                    <Button asChild>
-                      <Link to="/address">Add Address</Link>
+                    <Button onClick={() => setIsAddressModalOpen(true)}>
+                      Add Address
                     </Button>
                   </div>
                 ) : (
@@ -458,6 +459,17 @@ export const CheckoutPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Address Management Modal */}
+      <AddressManagementModal 
+        open={isAddressModalOpen} 
+        onOpenChange={setIsAddressModalOpen}
+        onSelectAddress={(address) => {
+          setSelectedAddressId(address.addressId?.toString());
+          refetchAddresses();
+          setIsAddressModalOpen(false);
+        }}
+      />
     </div>
   );
 };
