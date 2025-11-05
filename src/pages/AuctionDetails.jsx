@@ -304,17 +304,17 @@ const AuctionDetails = () => {
               
               <Separator className="my-4" />
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Bid Increment</p>
                   <p className="font-medium">{formatCurrency(auction.bidIncrement)}</p>
                 </div>
-                <div>
+                {/* <div>
                   <p className="text-muted-foreground">Reserve Price</p>
                   <p className="font-medium">
                     {auction.reservePrice ? formatCurrency(auction.reservePrice) : 'None'}
                   </p>
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
