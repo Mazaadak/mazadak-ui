@@ -50,9 +50,9 @@ export const Navbar = () => {
             <div className="flex items-center gap-2">
               {/* User-specific navigation buttons */}
               <div className="hidden sm:flex items-center gap-1">
-                <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={() => navigateClean('/watchlist')}>
+                {/* <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={() => navigateClean('/watchlist')}>
                   Watchlist
-                </Button>
+                </Button> */}
                 <Button variant="ghost" size="sm" className="hidden md:flex" onClick={() => navigateClean('/cart')}>
                   Cart
                 </Button>
@@ -80,15 +80,15 @@ export const Navbar = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Link to="/purchases">
-                      My Purchases
+                    <Link to="/my-orders">
+                      My Orders
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link to="/sales">
-                      My Sales
+                  {/* <DropdownMenuItem>
+                    <Link to="/watchlist">
+                      Watchlist
                     </Link>
-                  </DropdownMenuItem>
+                  </DropdownMenuItem> */}
                 </DropdownMenuContent>
               </DropdownMenu>
               

@@ -6,7 +6,38 @@ export const productAPI = {
 
     getProduct: (id) => apiClient.get(`/products/${id}`),
 
-    createProduct: (data, idempotencyKey) => apiClient.post("/products", { type: "NONE", price: 0, ...data }, { headers: { "Idempotency-Key": idempotencyKey } }),
+    createProduct: (data, idempotencyKey) => {
+        const formData = new FormData();
+        
+        // Create the product data as a JSON blob
+        const productData = {
+            title: data.title,
+            description: data.description,
+            price: data.price || 0,
+            type: data.type || 'NONE',
+            categoryId: data.categoryId
+        };
+        
+        // Append as a Blob with application/json content type
+        const productBlob = new Blob([JSON.stringify(productData)], {
+            type: 'application/json'
+        });
+        formData.append('createRequest', productBlob);
+        
+        // Append images if they exist
+        if (data.images && data.images.length > 0) {
+            data.images.forEach((image) => {
+                formData.append('images', image);
+            });
+        }
+        
+        return apiClient.post("/products", formData, {
+            headers: {
+                "Idempotency-Key": idempotencyKey,
+                "Content-Type": undefined, // Let browser set multipart/form-data with boundary
+            }
+        });
+    },
     
     updateProduct: (id, data) => apiClient.put(`/products/${id}`, data),
     

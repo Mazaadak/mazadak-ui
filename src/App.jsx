@@ -22,6 +22,11 @@ import { AddressPage } from "./pages/AddressPage.jsx";
 import { Toaster } from "sonner";
 import { useTheme } from "./components/providers/ThemeProvider.jsx"; 
 import WatchlistPage from "./pages/WatchlistPage.jsx";
+import { CheckoutPage } from "./pages/CheckoutPage.jsx";
+import { AuctionCheckoutPage } from "./pages/AuctionCheckoutPage.jsx";
+import { OrderSuccessPage } from "./pages/OrderSuccessPage.jsx";
+import { MyOrdersPage } from "./pages/MyOrdersPage.jsx";
+import { OrderDetailPage } from "./pages/OrderDetailPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,7 +76,12 @@ function App() {
                 <Route path="/address" element={<AddressPage />} />
                 <Route path="/my-listings" element={<MyListingsPage />} />
                 <Route path="/cart" element={<CartPage />} />
-                <Route path="/watchlist" element={<WatchlistPage />} />
+                {/* <Route path="/watchlist" element={<WatchlistPage />} /> */}
+                <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/auction-checkout/:orderId" element={<AuctionCheckoutPage />} />
+                <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                <Route path="/my-orders" element={<MyOrdersPage />} />
+                <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               </Route>
             </Routes>
           </ThemeProvider>

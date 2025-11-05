@@ -20,6 +20,11 @@ const ProductModal = ({ open, onClose, onSelect }) => {
     product.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleProductClick = (productId) => {
+    // Toggle selection - if already selected, deselect it
+    setSelectedProductId(prev => prev === productId ? null : productId);
+  };
+
   const handleSelect = () => {
     if (selectedProductId) onSelect(selectedProductId);
   };
@@ -60,7 +65,7 @@ const ProductModal = ({ open, onClose, onSelect }) => {
                   <ProductCard
                     key={product.productId}
                     product={product}
-                    onSelect={setSelectedProductId}
+                    onSelect={handleProductClick}
                     isSelected={selectedProductId === product.productId}
                   />
                 ))

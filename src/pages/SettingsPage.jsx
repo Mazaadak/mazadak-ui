@@ -2,7 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Separator } from '../components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone, Lock, AlertTriangle } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Settings, User, MapPin, ChevronRight, Camera, AtSign, Phone, Lock, AlertTriangle, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { UpdateEmailDialog } from '../components/UpdateEmailDialog';
@@ -13,6 +14,7 @@ import { UpdatePasswordDialog } from '../components/UpdatePasswordDialog';
 import { DeleteAccountDialog } from '../components/DeleteAccountDialog';
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { useStripeAccount, useGetStripeOAuthUrl } from '../hooks/usePayments';
 
 export const SettingsPage = () => {
   const { user } = useAuth();
@@ -23,6 +25,30 @@ export const SettingsPage = () => {
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isDeleteAccountDialogOpen, setIsDeleteAccountDialogOpen] = useState(false);
+  const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false);
+
+  // Check Stripe account status
+  const { data: stripeAccount, isLoading: isLoadingStripe, refetch: refetchStripeAccount } = useStripeAccount(user?.userId);
+  const getStripeOAuthUrl = useGetStripeOAuthUrl();
+
+  // Handle Stripe onboarding redirect
+  const handleStripeOnboarding = async () => {
+    try {
+      setIsRedirectingToStripe(true);
+      const response = await getStripeOAuthUrl.mutateAsync(user?.userId);
+      console.log('Stripe OAuth response:', response);
+      const oauthUrl = response?.onboardingUrl || response?.url || response?.data?.onboardingUrl || response?.data?.url;
+      if (oauthUrl && typeof oauthUrl === 'string') {
+        window.location.href = oauthUrl;
+      } else {
+        console.error('Invalid OAuth URL received:', response);
+        setIsRedirectingToStripe(false);
+      }
+    } catch (error) {
+      console.error('Failed to get Stripe OAuth URL:', error);
+      setIsRedirectingToStripe(false);
+    }
+  };
 
   // Parse name from user object (backend returns single "name" field)
   const parseName = (fullName) => {
@@ -280,6 +306,87 @@ export const SettingsPage = () => {
                 </span>
                 <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Stripe Account Connection - Enhanced */}
+          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+            <CardHeader className="pb-4 border-b bg-gradient-to-r from-muted/30 to-transparent">
+              <CardTitle className="text-xl font-bold flex items-center gap-3">
+                <div className="p-2.5 bg-primary/10 rounded-lg shadow-sm">
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <div className="text-xl font-bold">Payment Account</div>
+                  <div className="text-xs font-normal text-muted-foreground mt-0.5">Manage your Stripe account for receiving payments</div>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              {isLoadingStripe ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : stripeAccount ? (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm text-green-900">Stripe Account Connected</h3>
+                      <p className="text-xs text-green-700 mt-1">
+                        Your Stripe account is connected and ready to receive payments. You can create listings and sell items.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-center h-12 text-base font-medium hover:bg-primary/5 hover:border-primary/30 transition-all shadow-sm hover:shadow"
+                    onClick={handleStripeOnboarding}
+                    disabled={isRedirectingToStripe}
+                  >
+                    {isRedirectingToStripe ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Redirecting...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Manage Stripe Account
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm text-amber-900">No Payment Account Connected</h3>
+                      <p className="text-xs text-amber-700 mt-1">
+                        You need to connect a Stripe account to create listings and receive payments from buyers.
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full justify-center h-12 text-base font-semibold shadow-sm hover:shadow"
+                    onClick={handleStripeOnboarding}
+                    disabled={isRedirectingToStripe}
+                  >
+                    {isRedirectingToStripe ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Redirecting to Stripe...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        Connect Stripe Account
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
