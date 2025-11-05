@@ -3,6 +3,7 @@ import { useInventoryItem } from "../hooks/useInventory";
 import { useAddToCart } from "../hooks/useCart";
 import { useProductRatings } from "../hooks/useRatings";
 import { useUser } from "../hooks/useUsers";
+import { useAuth } from "../contexts/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -17,6 +18,7 @@ import { RatingList } from "../components/RatingList";
 const FixedPriceDetails = () => {
   const productId = useParams().productId;
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [ratingsPage, setRatingsPage] = useState(0);
@@ -287,12 +289,14 @@ const FixedPriceDetails = () => {
               </div>
               <Button
                 onClick={handleAddToCart}
-                disabled={addToCart.isPending || !stock || stock === 0}
+                disabled={addToCart.isPending || !stock || stock === 0 || product.sellerId === user?.userId}
                 className="w-full"
                 size="lg"
               >
                 <ShoppingCart className="mr-2 h-5 w-5" />
-                {addToCart.isPending
+                {product.sellerId === user?.userId
+                  ? 'Your Product'
+                  : addToCart.isPending
                   ? 'Adding to Cart...'
                   : stock === 0
                   ? 'Out of Stock'

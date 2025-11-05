@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Filter, SlidersHorizontal, Clock, Tag, TrendingUp, ShoppingCart, Eye, ChevronLeft, ChevronRight, Bell, Loader2, User } from 'lucide-react';
+import { Search, Filter, SlidersHorizontal, Clock, Tag, TrendingUp, ShoppingCart, Eye, ChevronLeft, ChevronRight, Bell, Loader2, User, Gavel, CalendarClock, Play, XCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -12,176 +12,218 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
-import { useAuctions, useWatchlist, useWatchAuction, useUnwatchAuction } from '@/hooks/useAuctions';
+import { useAuctions } from '@/hooks/useAuctions';
 import { useAddToCart } from '../hooks/useCart';
 import { useUser } from '../hooks/useUsers';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { useBids } from '../hooks/useAuctions';
+import { BidHistory } from '../components/auction/BidHistory';
+import { useProduct } from '../hooks/useProducts';
 
 // Auction Card Component
-const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, isAuctionWatched, handleToggleWatch }) => {
+const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon }) => {
   const { data: seller } = useUser(auction.sellerId);
-  
+  const { data: bidData } = useBids(auction.id, { size: 1000 }); // Fetch all bids to get count
+  const { data: productData } = useProduct(auction.productId);
+  console.log("AuctionCardItem auction:", auction);
+  console.log("AuctionCardItem productData:", productData);
   return (
     <Card 
       key={auction.id} 
-      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
       onClick={() => navigate(`/auctions/${auction.id}`)}
     >
-      <div className="relative aspect-square bg-muted">
-        <div className="absolute top-2 left-2 z-10">
-          <Badge variant={getStatusVariant(auction.status)} className="text-xs">
+      <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50">
+        {/* Status Badge */}
+        <div className="absolute top-3 left-3 z-10">
+          <Badge variant={getStatusVariant(auction.status)} className="text-xs font-semibold shadow-lg">
+            {getStatusIcon(auction.status)}
             {auction.status}
           </Badge>
         </div>
-        <div className="absolute top-2 right-2 z-10">
-          <Badge variant="secondary" className="bg-black/70 text-white hover:bg-black/80 text-xs">
-            <Clock className="h-3 w-3 mr-1" />
-            {getTimeRemaining(auction.endTime)}
-          </Badge>
-        </div>
-        {auction.product?.images?.[0]?.imageUri && (
-          <img 
-            src={auction.product.images[0].imageUri} 
-            alt={auction.title}
-            className="w-full h-full object-cover"
-          />
+        
+        {/* Time Remaining */}
+        {auction.status === 'ACTIVE' && (
+          <div className="absolute top-3 right-3 z-10">
+            <Badge variant="secondary" className="bg-black/80 text-white hover:bg-black text-xs font-semibold shadow-lg backdrop-blur-sm">
+              <Clock className="h-3 w-3 mr-1" />
+              {getTimeRemaining(auction.endTime)}
+            </Badge>
+          </div>
         )}
+        
+        {/* Product Image */}
+        {productData?.images?.[0]?.imageUri ? (
+          <img 
+            src={productData.images[0].imageUri} 
+            alt={auction.title || productData?.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Gavel className="h-16 w-16 text-muted-foreground/30" />
+          </div>
+        )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-      <CardHeader className="p-3 pb-2">
-        <h3 className="font-semibold text-sm truncate">{auction.title || auction.product?.title}</h3>
+      
+      <CardHeader className="p-4 pb-3 space-y-2">
+        <h3 className="font-bold text-base line-clamp-2 group-hover:text-primary transition-colors">
+          {auction.title || auction.product?.title}
+        </h3>
+        
         {seller && (
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <Avatar className="h-5 w-5">
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
               <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
-              <AvatarFallback className="text-[10px]">
-                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              <AvatarFallback className="text-[10px] font-medium">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
             </Avatar>
-            <span className="text-muted-foreground">Sold by</span>
-            <span className="font-medium">
+            <span className="text-muted-foreground">by</span>
+            <span className="font-semibold text-foreground truncate">
               {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
             </span>
           </div>
         )}
       </CardHeader>
-      <CardContent className="p-3 pt-0 pb-2">
+      
+      <CardContent className="p-4 pt-0 pb-3">
         {auction.highestBidPlaced ? (
-          <div className="space-y-0.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-bold">
+          <div className="space-y-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 ${auction.highestBidPlaced.amount?.toFixed(2) || '0.00'}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-xs text-green-600">
-              <TrendingUp className="h-3 w-3" />
-              <span>Current bid</span>
+            <div className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>{ auction.status == "ENDED" ? "Last Bid" : "Current Bid" } • { bidData?.content?.length || 0} bids</span>
             </div>
           </div>
         ) : (
-          <div className="space-y-0.5">
-            <div className="text-lg font-bold">
+          <div className="space-y-1">
+            <div className="text-2xl font-bold">
               ${auction.startingPrice?.toFixed(2) || '0.00'}
             </div>
-            <div className="text-xs text-muted-foreground">starting bid</div>
+            <div className="text-xs text-muted-foreground font-medium">Starting Bid</div>
           </div>
         )}
       </CardContent>
-      <CardFooter className="p-3 pt-0">
-        {auction.status === 'SCHEDULED' ? (
-          <Button 
-            className="w-full h-8 text-xs" 
-            size="sm"
-            variant={isAuctionWatched(auction.id) ? "default" : "outline"}
-            onClick={(e) => handleToggleWatch(auction.id, isAuctionWatched(auction.id), e)}
-          >
-            <Bell className="h-3 w-3 mr-1" />
-            {isAuctionWatched(auction.id) ? 'Unwatch' : 'Watch'}
-          </Button>
-        ) : (
-          <Button 
-            className="w-full h-8 text-xs" 
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/auctions/${auction.id}`);
-            }}
-          >
-            View Details
-          </Button>
-        )}
+      
+      <CardFooter className="p-4 pt-0">
+        <Button 
+          className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/auctions/${auction.id}`);
+          }}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          View Auction
+        </Button>
       </CardFooter>
     </Card>
   );
 };
 
 // Fixed Price Card Component
-const FixedPriceCardItem = ({ product, navigate, handleAddToCart }) => {
+const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId }) => {
   const { data: seller } = useUser(product.sellerId);
   const avgRating = product.ratings?.length > 0
     ? product.ratings.reduce((sum, r) => sum + r.rating, 0) / product.ratings.length
     : 0;
   
+  const isOwnProduct = product.sellerId === currentUserId;
+  
   return (
     <Card 
       key={product.productId} 
-      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+      className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
       onClick={() => navigate(`/fixed-price/${product.productId}`)}
     >
-      <div className="relative aspect-square bg-muted">
+      <div className="relative aspect-square bg-gradient-to-br from-muted to-muted/50">
+        {/* Rating Badge */}
         {avgRating > 0 && (
-          <div className="absolute top-2 left-2 z-10">
-            <Badge className="bg-yellow-400 text-yellow-900 hover:bg-yellow-500 text-xs">
+          <div className="absolute top-3 left-3 z-10">
+            <Badge className="bg-yellow-500/90 text-yellow-950 hover:bg-yellow-500 text-xs font-semibold shadow-lg backdrop-blur-sm">
               ★ {avgRating.toFixed(1)}
             </Badge>
           </div>
         )}
-        {product.images?.[0]?.imageUri && (
+        
+        {/* Product Image */}
+        {product.images?.[0]?.imageUri ? (
           <img 
             src={product.images[0].imageUri} 
             alt={product.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingCart className="h-16 w-16 text-muted-foreground/30" />
+          </div>
         )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
-      <CardHeader className="p-3 pb-2">
-        <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+      
+      <CardHeader className="p-4 pb-3 space-y-2">
+        <h3 className="font-bold text-base line-clamp-2 group-hover:text-primary transition-colors">
+          {product.title}
+        </h3>
+        
         {seller && (
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <Avatar className="h-5 w-5">
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
               <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
-              <AvatarFallback className="text-[10px]">
-                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              <AvatarFallback className="text-[10px] font-medium">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
             </Avatar>
-            <span className="text-muted-foreground">Sold by</span>
-            <span className="font-medium">
+            <span className="text-muted-foreground">by</span>
+            <span className="font-semibold text-foreground truncate">
               {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
             </span>
           </div>
         )}
       </CardHeader>
-      <CardContent className="p-3 pt-0 pb-2">
-        <span className="text-lg font-bold">
-          ${product.price?.toFixed(2) || '0.00'}
-        </span>
+      
+      <CardContent className="p-4 pt-0 pb-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold">
+            ${product.price?.toFixed(2) || '0.00'}
+          </span>
+        </div>
       </CardContent>
-      <CardFooter className="p-3 pt-0 flex-col gap-2">
+      
+      <CardFooter className="p-4 pt-0 flex-col gap-2">
         <Button 
-          className="w-full h-8 text-xs" 
+          className="w-full h-9 font-semibold" 
           size="sm"
           variant="outline"
-          onClick={(e) => { e.stopPropagation(); navigate(`/fixed-price/${product.productId}`); }}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            navigate(`/fixed-price/${product.productId}`); 
+          }}
         >
-          <Eye className="h-3 w-3 mr-1" />
+          <Eye className="h-4 w-4 mr-2" />
           View Details
         </Button>
+        
         <Button 
-          className="w-full h-8 text-xs" 
+          className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
           size="sm"
           onClick={(e) => handleAddToCart(product.productId, e)}
+          disabled={isOwnProduct}
         >
-          <ShoppingCart className="h-3 w-3 mr-1" />
-          Add to Cart
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          {isOwnProduct ? 'Your Product' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>
@@ -191,6 +233,7 @@ const FixedPriceCardItem = ({ product, navigate, handleAddToCart }) => {
 const ListingsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
 
   // Get all state from URL params with defaults
   const activeTab = searchParams.get('tab') || 'auctions';
@@ -376,35 +419,37 @@ const ListingsPage = () => {
 
   // Extract data from API response (Spring Boot Page format)
   // Handle cases where backend returns null, undefined, or empty string
-  const auctions = (auctionsData && typeof auctionsData === 'object') ? (auctionsData.content || []) : [];
+  const allAuctions = (auctionsData && typeof auctionsData === 'object') ? (auctionsData.content || []) : [];
+  
+  // Filter auctions by status - hide INVALID, COMPLETED, and optionally ENDED
+  const auctions = useMemo(() => {
+    return allAuctions.filter(auction => {
+      const status = auction.status;
+      // Hide INVALID and COMPLETED statuses
+      if (status === 'INVALID' || status === 'COMPLETED') {
+        return false;
+      }
+      return true;
+    });
+  }, [allAuctions]);
+  
   const auctionTotalPages = (auctionsData && typeof auctionsData === 'object') ? (auctionsData.totalPages || 0) : 0;
-  const auctionTotalElements = (auctionsData && typeof auctionsData === 'object') ? (auctionsData.totalElements || 0) : 0;
+  const auctionTotalElements = auctions.length; // Use filtered count
 
   const products = (productsData && typeof productsData === 'object') ? (productsData.content || []) : [];
   const productTotalPages = (productsData && typeof productsData === 'object') ? (productsData.totalPages || 0) : 0;
   const productTotalElements = (productsData && typeof productsData === 'object') ? (productsData.totalElements || 0) : 0;
-
-  // Fetch watchlist
-  const { data: watchlistData } = useWatchlist();
-  
-  // Create a Set of watched auction IDs for O(1) lookup
-  const watchedAuctionIds = useMemo(() => {
-    if (!watchlistData) return new Set();
-    return new Set(watchlistData.map(item => item.auction.id));
-  }, [watchlistData]);
-
-  // Helper function to check if auction is watched
-  const isAuctionWatched = (auctionId) => {
-    return watchedAuctionIds.has(auctionId);
-  };
   
   const getTimeRemaining = (endTime) => {
     const diff = new Date(endTime) - new Date();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     
+    if (diff < 0) return 'Ended';
     if (days > 0) return `${days}d ${hours}h`;
-    if (hours > 0) return `${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m`;
     return 'Ending soon';
   };
   
@@ -413,9 +458,20 @@ const ListingsPage = () => {
       SCHEDULED: 'secondary',
       STARTED: 'default',
       ACTIVE: 'default',
-      PAUSED: 'outline'
+      ENDED: 'default',
+      PAUSED: 'default'
     };
     return variants[status] || 'secondary';
+  };
+  
+  const getStatusIcon = (status) => {
+    const icons = {
+      SCHEDULED: <CalendarClock className="h-3 w-3 mr-1" />,
+      STARTED: <Play className="h-3 w-3 mr-1" />,
+      ACTIVE: <Gavel className="h-3 w-3 mr-1" />,
+      ENDED: <XCircle className="h-3 w-3 mr-1" />,
+    };
+    return icons[status] || null;
   };
   
   const clearFilters = () => {
@@ -431,25 +487,6 @@ const ListingsPage = () => {
     // Keep only the tab
     newSearchParams.set('tab', activeTab);
     setSearchParams(newSearchParams);
-  };
-
-  const watchAuctionMutation = useWatchAuction();
-  const unwatchAuctionMutation = useUnwatchAuction();
-
-  const handleToggleWatch = async (auctionId, isWatched, e) => {
-    e.stopPropagation();
-    
-    try {
-      if (isWatched) {
-        await unwatchAuctionMutation.mutateAsync(auctionId);
-        toast.success("Auction unwatched!");
-      } else {
-        await watchAuctionMutation.mutateAsync(auctionId);
-        toast.success("Auction watched!");
-      }
-    } catch (error) {
-      toast.error(isWatched ? "Failed to unwatch auction" : "Failed to watch auction");
-    }
   };
 
   const addToCart = useAddToCart();
@@ -798,8 +835,7 @@ const ListingsPage = () => {
                       navigate={navigate}
                       getStatusVariant={getStatusVariant}
                       getTimeRemaining={getTimeRemaining}
-                      isAuctionWatched={isAuctionWatched}
-                      handleToggleWatch={handleToggleWatch}
+                      getStatusIcon={getStatusIcon}
                     />
                   ))}
                 </div>
@@ -847,6 +883,7 @@ const ListingsPage = () => {
                       product={product}
                       navigate={navigate}
                       handleAddToCart={handleAddToCart}
+                      currentUserId={user?.userId}
                     />
                   ))}
                 </div>
