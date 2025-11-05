@@ -7,14 +7,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDownIcon } from "lucide-react";
+import { CardContent } from "@/components/ui/card";
+import { ChevronDownIcon, CalendarDays, Clock, DollarSign, TrendingUp, Gavel, AlertCircle, ArrowRight, Sparkles } from "lucide-react";
 
 const auctionFormSchema = z
   .object({
     title: z.string().min(1, "Title is required"),
     startingPrice: z.coerce.number().min(0, "Starting price must be at least 0"),
-    reservePrice: z.coerce.number().min(0, "Reserve price must be at least 0"),
+    reservePrice: z.coerce.number().optional().nullable(),
     bidIncrement: z.coerce.number().min(1, "Bid increment must be at least 1"),
     startDate: z.date({ required_error: "Start date is required" }),
     startTime: z.string().min(1, "Start time is required"),
@@ -90,9 +90,9 @@ const CreateAuctionForm = ({ onSubmit, initialData }) => {
   const {
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
     setValue,
-    trigger,
+    watch,
   } = useForm({
     resolver: zodResolver(auctionFormSchema),
     defaultValues: {
@@ -105,7 +105,11 @@ const CreateAuctionForm = ({ onSubmit, initialData }) => {
       endDate: undefined,
       endTime: "",
     },
+    mode: "onChange",
   });
+
+  const startingPrice = watch("startingPrice");
+  const reservePrice = watch("reservePrice");
 
   const formatDateTimeForJava = (date, time) => {
     if (!date || !time) return null;
@@ -125,7 +129,7 @@ const CreateAuctionForm = ({ onSubmit, initialData }) => {
     const submissionData = {
       title: data.title,
       startingPrice: data.startingPrice,
-      reservePrice: data.reservePrice,
+      reservePrice: data.reservePrice || null, // Send null if not filled
       bidIncrement: data.bidIncrement,
       startDateTime: startDateTime,
       endDateTime: endDateTime,
@@ -146,109 +150,294 @@ const CreateAuctionForm = ({ onSubmit, initialData }) => {
   };
 
   return (
-    <div className="bg-background p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="border rounded-lg bg-card text-card-foreground shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold">Auction Listing Details</CardTitle>
-            <CardDescription>Please provide the details for your auction listing.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmitForm)} className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="title" className="px-1">
-                  Title
-                </Label>
-                <Controller name="title" control={control} render={({ field }) => <Input id="title" placeholder="Enter auction title" {...field} className={errors.title ? "border-destructive" : ""} />} />
-                {errors.title && <p className="text-sm text-destructive px-1">{errors.title.message}</p>}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="startingPrice" className="px-1">
-                    Starting Price ($)
-                  </Label>
-                  <Controller name="startingPrice" control={control} render={({ field }) => <Input id="startingPrice" type="number" step="0.01" placeholder="0.00" {...field} className={errors.startingPrice ? "border-destructive" : ""} />} />
-                  {errors.startingPrice && <p className="text-sm text-destructive px-1">{errors.startingPrice.message}</p>}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="reservePrice" className="px-1">
-                    Reserve Price ($)
-                  </Label>
-                  <Controller name="reservePrice" control={control} render={({ field }) => <Input id="reservePrice" type="number" step="0.01" placeholder="0.00" {...field} className={errors.reservePrice ? "border-destructive" : ""} />} />
-                  {errors.reservePrice && <p className="text-sm text-destructive px-1">{errors.reservePrice.message}</p>}
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="bidIncrement" className="px-1">
-                    Bid Increment ($)
-                  </Label>
-                  <Controller name="bidIncrement" control={control} render={({ field }) => <Input id="bidIncrement" type="number" placeholder="1" {...field} className={errors.bidIncrement ? "border-destructive" : ""} />} />
-                  {errors.bidIncrement && <p className="text-sm text-destructive px-1">{errors.bidIncrement.message}</p>}
-                </div>
-              </div>
-
-              {/* Start Date & Time */}
-              <div className="flex flex-col gap-2">
-                <Label className="px-1">Start Date & Time</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Controller
-                    name="startDate"
-                    control={control}
-                    render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={`justify-between font-normal ${errors.startDate ? "border-destructive" : ""}`} type="button">
-                            {field.value ? field.value.toLocaleDateString() : "Pick a date"}
-                            <ChevronDownIcon className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={(date) => handleDateChange("startDate", date)} className="rounded-md border" />
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />
-                  <Controller name="startTime" control={control} render={({ field }) => <Input type="time" {...field} className={`bg-background ${errors.startTime ? "border-destructive" : ""}`} onChange={(e) => handleTimeChange("startTime", e.target.value)} />} />
-                </div>
-                {(errors.startDate || errors.startTime) && <p className="text-sm text-destructive px-1">{errors.startDate?.message || errors.startTime?.message}</p>}
-              </div>
-
-              {/* End Date & Time */}
-              <div className="flex flex-col gap-2">
-                <Label className="px-1">End Date & Time</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Controller
-                    name="endDate"
-                    control={control}
-                    render={({ field }) => (
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={`justify-between font-normal ${errors.endDate ? "border-destructive" : ""}`} type="button">
-                            {field.value ? field.value.toLocaleDateString() : "Pick a date"}
-                            <ChevronDownIcon className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={(date) => handleDateChange("endDate", date)} className="rounded-md border" />
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />
-                  <Controller name="endTime" control={control} render={({ field }) => <Input type="time" {...field} className={`bg-background ${errors.endTime ? "border-destructive" : ""}`} onChange={(e) => handleTimeChange("endTime", e.target.value)} />} />
-                </div>
-                {(errors.endDate || errors.endTime) && <p className="text-sm text-destructive px-1">{errors.endDate?.message || errors.endTime?.message}</p>}
-              </div>
-
-              <Button type="submit" className="w-full mt-4">
-                Create Auction Listing
-              </Button>
-            </form>
-          </CardContent>
+    <CardContent className="p-6">
+      <form onSubmit={handleSubmit(onSubmitForm)} className="space-y-6">
+        {/* Title */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-purple-500/10">
+              <Gavel className="h-4 w-4 text-purple-600" />
+            </div>
+            Auction Title
+          </label>
+          <Controller
+            name="title"
+            control={control}
+            render={({ field }) => (
+              <Input
+                placeholder="e.g., Vintage Camera Collection"
+                className={`h-11 ${errors.title ? 'border-red-500' : ''}`}
+                {...field}
+              />
+            )}
+          />
+          {errors.title && (
+            <p className="text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1">
+              <span className="inline-block w-1 h-1 rounded-full bg-red-600" />
+              {errors.title.message}
+            </p>
+          )}
         </div>
-      </div>
-    </div>
+
+        {/* Pricing Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Starting Price */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-green-500/10">
+                <DollarSign className="h-4 w-4 text-green-600" />
+              </div>
+              Starting Price
+            </label>
+            <Controller
+              name="startingPrice"
+              control={control}
+              render={({ field }) => (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`pl-7 h-11 ${errors.startingPrice ? 'border-red-500' : ''}`}
+                    {...field}
+                  />
+                </div>
+              )}
+            />
+            {errors.startingPrice && (
+              <p className="text-xs text-red-600">{errors.startingPrice.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Minimum bid amount</p>
+          </div>
+
+          {/* Reserve Price */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-orange-500/10">
+                <TrendingUp className="h-4 w-4 text-orange-600" />
+              </div>
+              Reserve Price <span className="text-xs font-normal text-muted-foreground">(Optional)</span>
+            </label>
+            <Controller
+              name="reservePrice"
+              control={control}
+              render={({ field }) => (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`pl-7 h-11 ${errors.reservePrice ? 'border-red-500' : ''}`}
+                    {...field}
+                  />
+                </div>
+              )}
+            />
+            {errors.reservePrice && (
+              <p className="text-xs text-red-600">{errors.reservePrice.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Hidden minimum price</p>
+          </div>
+
+          {/* Bid Increment */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-blue-500/10">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+              </div>
+              Bid Increment
+            </label>
+            <Controller
+              name="bidIncrement"
+              control={control}
+              render={({ field }) => (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="1.00"
+                    className={`pl-7 h-11 ${errors.bidIncrement ? 'border-red-500' : ''}`}
+                    {...field}
+                  />
+                </div>
+              )}
+            />
+            {errors.bidIncrement && (
+              <p className="text-xs text-red-600">{errors.bidIncrement.message}</p>
+            )}
+            <p className="text-xs text-muted-foreground">Minimum bid increase</p>
+          </div>
+        </div>
+
+        {/* Price Summary */}
+        {(startingPrice || reservePrice) && (
+          <div className="p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-purple-600" />
+              <span className="text-sm font-medium">Auction Summary</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {startingPrice && (
+                <div>
+                  <span className="text-muted-foreground">Starting: </span>
+                  <span className="font-semibold">${Number(startingPrice).toFixed(2)}</span>
+                </div>
+              )}
+              {reservePrice && (
+                <div>
+                  <span className="text-muted-foreground">Reserve: </span>
+                  <span className="font-semibold">${Number(reservePrice).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Start Date & Time */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-green-500/10">
+              <CalendarDays className="h-4 w-4 text-green-600" />
+            </div>
+            Start Date & Time
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              name="startDate"
+              control={control}
+              render={({ field }) => (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`justify-between h-11 ${errors.startDate ? 'border-red-500' : ''}`}
+                      type="button"
+                    >
+                      {field.value ? field.value.toLocaleDateString() : "Pick date"}
+                      <CalendarDays className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => handleDateChange("startDate", date)}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const compareDate = new Date(date);
+                        compareDate.setHours(0, 0, 0, 0);
+                        return compareDate < today;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            />
+            <Controller
+              name="startTime"
+              control={control}
+              render={({ field }) => (
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="time"
+                    {...field}
+                    className={`pl-10 h-11 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none ${errors.startTime ? 'border-red-500' : ''}`}
+                    onChange={(e) => handleTimeChange("startTime", e.target.value)}
+                  />
+                </div>
+              )}
+            />
+          </div>
+          {(errors.startDate || errors.startTime) && (
+            <p className="text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1">
+              <AlertCircle className="h-3 w-3" />
+              {errors.startDate?.message || errors.startTime?.message}
+            </p>
+          )}
+        </div>
+
+        {/* End Date & Time */}
+        <div className="space-y-2">
+          <label className="text-sm font-semibold flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-red-500/10">
+              <CalendarDays className="h-4 w-4 text-red-600" />
+            </div>
+            End Date & Time
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <Controller
+              name="endDate"
+              control={control}
+              render={({ field }) => (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={`justify-between h-11 ${errors.endDate ? 'border-red-500' : ''}`}
+                      type="button"
+                    >
+                      {field.value ? field.value.toLocaleDateString() : "Pick date"}
+                      <CalendarDays className="h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={(date) => handleDateChange("endDate", date)}
+                      disabled={(date) => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const compareDate = new Date(date);
+                        compareDate.setHours(0, 0, 0, 0);
+                        return compareDate < today;
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
+            />
+            <Controller
+              name="endTime"
+              control={control}
+              render={({ field }) => (
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    type="time"
+                    {...field}
+                    className={`pl-10 h-11 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none ${errors.endTime ? 'border-red-500' : ''}`}
+                    onChange={(e) => handleTimeChange("endTime", e.target.value)}
+                  />
+                </div>
+              )}
+            />
+          </div>
+          {(errors.endDate || errors.endTime) && (
+            <p className="text-sm text-red-600 flex items-center gap-1 animate-in slide-in-from-top-1">
+              <AlertCircle className="h-3 w-3" />
+              {errors.endDate?.message || errors.endTime?.message}
+            </p>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          disabled={!isValid}
+          className="w-full h-12 text-base font-semibold group transition-all duration-300 hover:shadow-lg"
+        >
+          <Gavel className="mr-2 h-4 w-4" />
+          Create Auction Listing
+          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+        </Button>
+      </form>
+    </CardContent>
   );
 };
 
