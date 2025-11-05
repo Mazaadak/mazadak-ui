@@ -67,8 +67,6 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/listings" element={<ListingsPage />} />
-                <Route path="/fixed-price/:productId" element={<FixedPriceDetails />} />
-                <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
               <Route element={<ProtectedLayout />}>
                 <Route path="/create-item" element={<CreateItemPage />} />
@@ -82,6 +80,8 @@ function App() {
                 <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
                 <Route path="/my-orders" element={<MyOrdersPage />} />
                 <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+                <Route path="/fixed-price/:productId" element={<FixedPriceDetails />} />
+                <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
             </Routes>
           </ThemeProvider>

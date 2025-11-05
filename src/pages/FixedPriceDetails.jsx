@@ -1,5 +1,5 @@
-import { useProduct } from "../hooks/useProducts";
-import { useInventoryItem } from "../hooks/useInventory";
+import { useProduct, useDeleteProduct } from "../hooks/useProducts";
+import { useInventoryItem, useDeleteInventoryItem } from "../hooks/useInventory";
 import { useAddToCart } from "../hooks/useCart";
 import { useProductRatings } from "../hooks/useRatings";
 import { useUser } from "../hooks/useUsers";
@@ -10,10 +10,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare, User } from "lucide-react";
+import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare, User, Pencil, Trash2, ListX } from "lucide-react";
 import { useState } from "react";
 import { RatingForm } from "../components/RatingForm";
 import { RatingList } from "../components/RatingList";
+import { EditFixedPriceSheet } from "../components/EditFixedPriceSheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { toast } from "sonner";
 
 const FixedPriceDetails = () => {
   const productId = useParams().productId;
@@ -22,13 +38,21 @@ const FixedPriceDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [ratingsPage, setRatingsPage] = useState(0);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  const deleteProduct = useDeleteProduct();
+  const deleteInventory = useDeleteInventoryItem();
+
+  
   console.log("Product ID:", productId);
   
   const { data: product, isLoading, error } = useProduct(productId);
-  const { data: seller } = useUser(product?.sellerId);
+  // Only fetch seller data if user is authenticated
+  const { data: seller } = useUser(user ? product?.sellerId : null);
   const { data: inventoryItem } = useInventoryItem(productId);
   const { data: ratingsData, isLoading: ratingsLoading } = useProductRatings(productId, ratingsPage, 10);
+  const isOwner = product?.sellerId === user?.userId;
   
   const stock = inventoryItem ? inventoryItem.totalQuantity - inventoryItem.reservedQuantity : 0;
   console.log("Inventory Item:", inventoryItem);
@@ -101,6 +125,37 @@ const FixedPriceDetails = () => {
         }
       }
     );
+  };
+
+  const handleUnlist = async () => {
+    try {
+      await deleteInventory.mutateAsync(product.productId);
+      toast.success('Product Unlisted', {
+        description: 'The product has been removed from the marketplace.',
+      });
+      navigate('/my-listings');
+    } catch (error) {
+      console.error('Error unlisting product:', error);
+      toast.error('Failed to Unlist', {
+        description: 'Could not unlist the product. Please try again.',
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteProduct.mutateAsync(product.productId);
+      toast.success('Product Deleted', {
+        description: 'The product has been permanently deleted.',
+      });
+      setDeleteDialogOpen(false);
+      navigate('/my-listings');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to Delete', {
+        description: 'Could not delete the product. Please try again.',
+      });
+    }
   };
 
   const calculateAverageRating = () => {
@@ -278,8 +333,70 @@ const FixedPriceDetails = () => {
             </div>
           </div>
 
+          {/* Seller Controls */}
+          {isOwner && (
+            <Card className="border-primary/50 bg-primary/5">
+              <CardContent className="pt-6">
+                <p className="text-sm font-semibold mb-4">Manage Your Listing</p>
+                <div className="flex flex-col gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => setEditSheetOpen(true)}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit Product & Inventory
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Update product details and stock</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={handleUnlist}
+                          disabled={deleteInventory.isPending}
+                        >
+                          <ListX className="h-4 w-4 mr-2" />
+                          {deleteInventory.isPending ? 'Unlisting...' : 'Unlist from Marketplace'}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Remove from marketplace (keeps product)</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          className="w-full justify-start"
+                          onClick={() => setDeleteDialogOpen(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Product
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Permanently delete product</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Add to Cart Button */}
-          <Card className="bg-muted/50">
+          {!isOwner && (
+            <Card className="bg-muted/50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-sm text-muted-foreground">Subtotal</span>
@@ -316,6 +433,7 @@ const FixedPriceDetails = () => {
               )}
             </CardContent>
           </Card>
+          )}
         </div>
       </div>
 
@@ -385,6 +503,40 @@ const FixedPriceDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Sheet */}
+      {product && inventoryItem && (
+        <EditFixedPriceSheet
+          open={editSheetOpen}
+          onOpenChange={setEditSheetOpen}
+          product={product}
+          inventory={inventoryItem}
+        />
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to permanently delete this product? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={deleteProduct.isPending}
+            >
+              {deleteProduct.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

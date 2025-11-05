@@ -22,8 +22,9 @@ import { BidHistory } from '../components/auction/BidHistory';
 import { useProduct } from '../hooks/useProducts';
 
 // Auction Card Component
-const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon }) => {
-  const { data: seller } = useUser(auction.sellerId);
+const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
+  // Only fetch seller data if user is authenticated
+  const { data: seller } = useUser(isAuthenticated ? auction.sellerId : null);
   const { data: bidData } = useBids(auction.id, { size: 1000 }); // Fetch all bids to get count
   const { data: productData } = useProduct(auction.productId);
   console.log("AuctionCardItem auction:", auction);
@@ -132,8 +133,9 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
 };
 
 // Fixed Price Card Component
-const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId }) => {
-  const { data: seller } = useUser(product.sellerId);
+const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId, isAuthenticated }) => {
+  // Only fetch seller data if user is authenticated
+  const { data: seller } = useUser(isAuthenticated ? product.sellerId : null);
   const avgRating = product.ratings?.length > 0
     ? product.ratings.reduce((sum, r) => sum + r.rating, 0) / product.ratings.length
     : 0;
@@ -220,10 +222,10 @@ const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId 
           className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
           size="sm"
           onClick={(e) => handleAddToCart(product.productId, e)}
-          disabled={isOwnProduct}
+          disabled={isOwnProduct || !isAuthenticated}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
-          {isOwnProduct ? 'Your Product' : 'Add to Cart'}
+          {isOwnProduct ? 'Your Product' : !isAuthenticated ? 'Login to Add' : 'Add to Cart'}
         </Button>
       </CardFooter>
     </Card>
@@ -836,6 +838,7 @@ const ListingsPage = () => {
                       getStatusVariant={getStatusVariant}
                       getTimeRemaining={getTimeRemaining}
                       getStatusIcon={getStatusIcon}
+                      isAuthenticated={!!user}
                     />
                   ))}
                 </div>
@@ -884,6 +887,7 @@ const ListingsPage = () => {
                       navigate={navigate}
                       handleAddToCart={handleAddToCart}
                       currentUserId={user?.userId}
+                      isAuthenticated={!!user}
                     />
                   ))}
                 </div>
