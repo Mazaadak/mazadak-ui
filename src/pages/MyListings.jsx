@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDeleteProduct, useProducts } from '../hooks/useProducts';
+import { useDeleteProduct, useProduct, useProducts } from '../hooks/useProducts';
 import { 
   useAuctions, 
   usePauseAuction, 
@@ -642,18 +642,18 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
       <div 
-        className="relative aspect-square bg-muted"
+        className="relative aspect-square bg-gradient-to-br from-muted to-muted/50"
         onClick={() => navigate(`/fixed-price/${product.productId}`)}
       >
         {product.images?.[0]?.imageUri ? (
           <img 
             src={product.images[0].imageUri} 
             alt={product.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-12 w-12 text-muted-foreground" />
+            <Package className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
         <div className="absolute top-2 right-2">
@@ -661,6 +661,8 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
             {stock} in stock
           </Badge>
         </div>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
       <CardHeader className="p-3 pb-2">
@@ -786,11 +788,12 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
   const isScheduled = auction.status === 'SCHEDULED';
   const isEnded = auction.status === 'ENDED';
   const isCancelled = auction.status === 'CANCELLED';
+  const { data: productData } = useProduct(auction.productId);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div 
-        className="relative aspect-square bg-muted cursor-pointer"
+        className="relative aspect-square bg-gradient-to-br from-muted to-muted/50 cursor-pointer"
         onClick={() => navigate(`/auctions/${auction.id}`)}
       >
         <div className="absolute top-2 left-2 z-10">
@@ -806,17 +809,19 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             </Badge>
           </div>
         )}
-        {auction.product?.images?.[0]?.imageUri ? (
+        {productData?.images?.[0]?.imageUri ? (
           <img 
-            src={auction.product.images[0].imageUri} 
-            alt={auction.title || auction.product?.title}
-            className="w-full h-full object-cover"
+            src={productData.images[0].imageUri} 
+            alt={auction.title || productData?.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-12 w-12 text-muted-foreground" />
+            <Package className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
       <CardHeader className="p-3 pb-2">
@@ -1022,22 +1027,24 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
       <div 
-        className="relative aspect-square bg-muted"
+        className="relative aspect-square bg-gradient-to-br from-muted to-muted/50"
       >
         {product.images?.[0]?.imageUri ? (
           <img 
             src={product.images[0].imageUri} 
             alt={product.title}
-            className="w-full h-full object-cover opacity-60"
+            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-12 w-12 text-muted-foreground opacity-60" />
+            <Package className="h-16 w-16 text-muted-foreground/30 opacity-60" />
           </div>
         )}
         <div className="absolute top-2 right-2">
           <Badge variant="secondary">Unlisted</Badge>
         </div>
+        {/* Gradient Overlay */}
+        <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
       <CardHeader className="p-3 pb-2">
