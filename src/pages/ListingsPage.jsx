@@ -79,7 +79,7 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
         {seller && (
           <div className="flex items-center gap-2 text-xs">
             <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
-              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
               <AvatarFallback className="text-[10px] font-medium">
                 {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
@@ -183,7 +183,7 @@ const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId,
         {seller && (
           <div className="flex items-center gap-2 text-xs">
             <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
-              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
               <AvatarFallback className="text-[10px] font-medium">
                 {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>

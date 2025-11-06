@@ -670,7 +670,7 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
         {seller && (
           <div className="flex items-center gap-2 text-xs mb-1">
             <Avatar className="h-5 w-5">
-              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
               <AvatarFallback className="text-[10px]">
                 {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
               </AvatarFallback>
@@ -831,7 +831,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
         {seller && (
           <div className="flex items-center gap-2 text-xs mb-1">
             <Avatar className="h-5 w-5">
-              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
               <AvatarFallback className="text-[10px]">
                 {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
               </AvatarFallback>
@@ -1052,7 +1052,7 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
         {seller && (
           <div className="flex items-center gap-2 text-xs mb-1">
             <Avatar className="h-5 w-5">
-              <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+              <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
               <AvatarFallback className="text-[10px]">
                 {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
               </AvatarFallback>

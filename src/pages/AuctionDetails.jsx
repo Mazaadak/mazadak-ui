@@ -239,7 +239,7 @@ const AuctionDetails = () => {
             {seller && (
               <div className="flex items-center gap-2 text-sm mb-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+                  <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
                   <AvatarFallback className="text-xs">
                     {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
                   </AvatarFallback>
