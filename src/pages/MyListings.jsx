@@ -45,7 +45,12 @@ import {
   Clock,
   TrendingUp,
   Loader2,
-  User
+  User,
+  ShoppingBag,
+  Gavel,
+  Sparkles,
+  Store,
+  Tag
 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -369,41 +374,84 @@ export const MyListingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
+      <div className="border-b bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4 py-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">My Listings</h1>
+          <div className="mb-6">
+            <div className="flex items-center justify-between">
+              <div className="text-left">
+                <h1 className="text-3xl font-bold">
+                  My Listings
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Manage your products and auctions
+                </p>
+              </div>
+              <Button asChild size="lg" className="hover:scale-105 transition-transform">
+                <Link to="/create-item">
+                  <Plus className="mr-2 h-5 w-5" />
+                  Create Listing
+                </Link>
+              </Button>
             </div>
-            <Button asChild>
-              <Link to="/create-item">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Listing
-              </Link>
-            </Button>
           </div>
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList>
-              <TabsTrigger value="fixed">
-                Fixed Price
-                <Badge variant="secondary" className="ml-2">
-                  {fixedPriceProducts.length}
-                </Badge>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full flex justify-center">
+            <TabsList className="grid max-w-lg grid-cols-3 h-12 p-1 bg-muted/50">
+              <TabsTrigger 
+                value="fixed"
+                className="relative data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-200 h-full rounded-md font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  <span>Fixed Price</span>
+                  <Badge 
+                    variant={activeTab === 'fixed' ? 'default' : 'secondary'} 
+                    className="ml-1 transition-all duration-200 font-bold"
+                  >
+                    {fixedPriceProducts.length}
+                  </Badge>
+                </div>
+                {activeTab === 'fixed' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-t-full" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="auctions">
-                Auctions
-                <Badge variant="secondary" className="ml-2">
-                  {allAuctions.length}
-                </Badge>
+              <TabsTrigger 
+                value="auctions"
+                className="relative data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-200 h-full rounded-md font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Gavel className="h-4 w-4" />
+                  <span>Auctions</span>
+                  <Badge 
+                    variant={activeTab === 'auctions' ? 'default' : 'secondary'} 
+                    className="ml-1 transition-all duration-200 font-bold"
+                  >
+                    {allAuctions.length}
+                  </Badge>
+                </div>
+                {activeTab === 'auctions' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-t-full" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="unlisted">
-                Unlisted
-                <Badge variant="secondary" className="ml-2">
-                  {unlistedProducts.length}
-                </Badge>
+              <TabsTrigger 
+                value="unlisted"
+                className="relative data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-200 h-full rounded-md font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span>Unlisted</span>
+                  <Badge 
+                    variant={activeTab === 'unlisted' ? 'default' : 'secondary'} 
+                    className="ml-1 transition-all duration-200 font-bold"
+                  >
+                    {unlistedProducts.length}
+                  </Badge>
+                </div>
+                {activeTab === 'unlisted' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-t-full" />
+                )}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -604,34 +652,59 @@ export const MyListingsPage = () => {
 
 // Helper Components
 const EmptyState = ({ icon: Icon, title, description }) => (
-  <Card className="p-12">
+  <Card className="p-16 border-2 border-dashed">
     <div className="text-center">
-      <Icon className="h-16 w-16 mx-auto text-muted-foreground opacity-50 mb-4" />
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+      <div className="inline-flex p-4 rounded-full bg-muted/50 mb-4">
+        <Icon className="h-12 w-12 text-muted-foreground/50" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground mb-6">{description}</p>
+      <Button asChild variant="outline" size="lg" className="group">
+        <Link to="/create-item">
+          <Sparkles className="mr-2 h-4 w-4 group-hover:animate-spin" />
+          Create Your First Listing
+        </Link>
+      </Button>
     </div>
   </Card>
 );
 
-const AuctionSection = ({ title, auctions, onDelete, onPause, onResume, onCancel, onRelist, onEdit }) => (
-  <div>
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {auctions.map(auction => (
-        <AuctionCard
-          key={auction.id}
-          auction={auction}
-          onDelete={onDelete}
-          onPause={onPause}
-          onResume={onResume}
-          onCancel={onCancel}
-          onRelist={onRelist}
-          onEdit={onEdit}
-        />
-      ))}
+const AuctionSection = ({ title, auctions, onDelete, onPause, onResume, onCancel, onRelist, onEdit }) => {
+  const getIcon = (title) => {
+    switch(title) {
+      case 'Active': return <PlayCircle className="h-5 w-5 text-green-600" />;
+      case 'Upcoming': return <Clock className="h-5 w-5 text-blue-600" />;
+      case 'Paused': return <PauseCircle className="h-5 w-5 text-yellow-600" />;
+      case 'Cancelled': return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'Ended': return <TrendingUp className="h-5 w-5 text-purple-600" />;
+      default: return null;
+    }
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 pb-2 border-b">
+        {getIcon(title)}
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <Badge variant="secondary" className="ml-2">{auctions.length}</Badge>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {auctions.map(auction => (
+          <AuctionCard
+            key={auction.id}
+            auction={auction}
+            onDelete={onDelete}
+            onPause={onPause}
+            onResume={onResume}
+            onCancel={onCancel}
+            onRelist={onRelist}
+            onEdit={onEdit}
+          />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
   const navigate = useNavigate();
@@ -640,7 +713,7 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
   const stock = inventory ? (inventory.totalQuantity - inventory.reservedQuantity) : 0;
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50 hover:scale-[1.02]">
       <div 
         className="relative aspect-square bg-gradient-to-br from-muted to-muted/50"
         onClick={() => navigate(`/fixed-price/${product.productId}`)}
@@ -649,15 +722,18 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
           <img 
             src={product.images[0].imageUri} 
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-16 w-16 text-muted-foreground/30" />
+            <ShoppingBag className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
-        <div className="absolute top-2 right-2">
-          <Badge variant={stock > 0 ? 'secondary' : 'destructive'}>
+        <div className="absolute top-3 right-3 z-10">
+          <Badge 
+            variant={stock > 0 ? 'secondary' : 'destructive'} 
+            className="shadow-lg backdrop-blur-sm font-semibold"
+          >
             {stock} in stock
           </Badge>
         </div>
@@ -665,36 +741,45 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
         <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      <CardHeader className="p-3 pb-2">
-        <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+      <CardHeader className="p-4 pb-3 space-y-2">
+        <h3 className="font-bold text-base line-clamp-2 group-hover:text-primary transition-colors">
+          {product.title}
+        </h3>
         {seller && (
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <Avatar className="h-5 w-5">
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
               <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
-              <AvatarFallback className="text-[10px]">
-                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              <AvatarFallback className="text-[10px] font-medium">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
             </Avatar>
-            <span className="text-muted-foreground">Sold by</span>
-            <span className="font-medium">
-              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
-            </span>
+            <span className="text-muted-foreground">by you</span>
           </div>
         )}
-        <p className="text-lg font-bold">${product.price?.toFixed(2) || '0.00'}</p>
       </CardHeader>
       
-      <CardFooter className="p-3 pt-0 flex gap-2">
+      <CardContent className="p-4 pt-0 pb-3">
+        <div className="flex items-baseline gap-2">
+          <span className="text-2xl font-bold">
+            ${product.price?.toFixed(2) || '0.00'}
+          </span>
+        </div>
+      </CardContent>
+      
+      <CardFooter className="p-4 pt-0 flex gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="flex-1 h-8 text-xs" 
+                className="flex-1 h-9 font-semibold group-hover:shadow-md transition-shadow" 
                 size="sm"
                 variant="outline"
-                onClick={() => navigate(`/fixed-price/${product.productId}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/fixed-price/${product.productId}`);
+                }}
               >
-                <Eye className="h-3 w-3 mr-1" />
+                <Eye className="h-4 w-4 mr-1" />
                 View
               </Button>
             </TooltipTrigger>
@@ -706,12 +791,15 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="h-8 text-xs" 
+                className="h-9 hover:bg-primary/10 hover:text-primary transition-colors" 
                 size="sm"
                 variant="outline"
-                onClick={() => onEdit(product)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(product);
+                }}
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -722,12 +810,15 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="h-8 text-xs" 
+                className="h-9 hover:bg-orange-500/10 hover:text-orange-600 transition-colors" 
                 size="sm"
                 variant="outline"
-                onClick={() => onUnlist(product.productId)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUnlist(product.productId);
+                }}
               >
-                <ListX className="h-3 w-3" />
+                <ListX className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -738,12 +829,15 @@ const FixedPriceCard = ({ product, onDelete, onUnlist, onEdit }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="h-8 text-xs" 
+                className="h-9 hover:bg-destructive/10 hover:text-destructive transition-colors" 
                 size="sm"
-                variant="destructive"
-                onClick={() => onDelete(product, 'product')}
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(product, 'product');
+                }}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -783,6 +877,18 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
     return variants[status] || 'secondary';
   };
 
+  const getStatusIcon = (status) => {
+    const icons = {
+      SCHEDULED: <Clock className="h-3 w-3 mr-1" />,
+      STARTED: <PlayCircle className="h-3 w-3 mr-1" />,
+      ACTIVE: <PlayCircle className="h-3 w-3 mr-1" />,
+      PAUSED: <PauseCircle className="h-3 w-3 mr-1" />,
+      ENDED: <TrendingUp className="h-3 w-3 mr-1" />,
+      CANCELLED: <XCircle className="h-3 w-3 mr-1" />
+    };
+    return icons[status] || null;
+  };
+
   const isActive = ['STARTED', 'ACTIVE'].includes(auction.status);
   const isPaused = auction.status === 'PAUSED';
   const isScheduled = auction.status === 'SCHEDULED';
@@ -791,19 +897,20 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
   const { data: productData } = useProduct(auction.productId);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50 hover:scale-[1.02]">
       <div 
-        className="relative aspect-square bg-gradient-to-br from-muted to-muted/50 cursor-pointer"
+        className="relative aspect-square bg-gradient-to-br from-muted to-muted/50"
         onClick={() => navigate(`/auctions/${auction.id}`)}
       >
-        <div className="absolute top-2 left-2 z-10">
-          <Badge variant={getStatusVariant(auction.status)} className="text-xs">
+        <div className="absolute top-3 left-3 z-10">
+          <Badge variant={getStatusVariant(auction.status)} className="text-xs font-semibold shadow-lg">
+            {getStatusIcon(auction.status)}
             {auction.status}
           </Badge>
         </div>
         {isActive && (
-          <div className="absolute top-2 right-2 z-10">
-            <Badge variant="secondary" className="bg-black/70 text-white hover:bg-black/80 text-xs">
+          <div className="absolute top-3 right-3 z-10">
+            <Badge variant="secondary" className="bg-black/80 text-white hover:bg-black text-xs font-semibold shadow-lg backdrop-blur-sm">
               <Clock className="h-3 w-3 mr-1" />
               {getTimeRemaining(auction.endTime)}
             </Badge>
@@ -813,68 +920,73 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
           <img 
             src={productData.images[0].imageUri} 
             alt={auction.title || productData?.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <Package className="h-16 w-16 text-muted-foreground/30" />
+            <Gavel className="h-16 w-16 text-muted-foreground/30" />
           </div>
         )}
         {/* Gradient Overlay */}
         <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      <CardHeader className="p-3 pb-2">
-        <h3 className="font-semibold text-sm truncate">
+      <CardHeader className="p-4 pb-3 space-y-2">
+        <h3 className="font-bold text-base line-clamp-2 group-hover:text-primary transition-colors">
           {auction.title || auction.product?.title}
         </h3>
         {seller && (
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <Avatar className="h-5 w-5">
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
               <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
-              <AvatarFallback className="text-[10px]">
-                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              <AvatarFallback className="text-[10px] font-medium">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
             </Avatar>
-            <span className="text-muted-foreground">Sold by</span>
-            <span className="font-medium">
-              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
-            </span>
+            <span className="text-muted-foreground">by you</span>
           </div>
         )}
-        <div className="space-y-1">
-          {auction.highestBidPlaced ? (
-            <div>
-              <div className="text-lg font-bold">
-                ${auction.highestBidPlaced.amount?.toFixed(2) || '0.00'}
-              </div>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <TrendingUp className="h-3 w-3" />
-                <span>Current bid</span>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <div className="text-lg font-bold">
-                ${auction.startingPrice?.toFixed(2) || '0.00'}
-              </div>
-              <div className="text-xs text-muted-foreground">Starting bid</div>
-            </div>
-          )}
-        </div>
       </CardHeader>
       
-      <CardFooter className="p-3 pt-0 flex flex-wrap gap-2">
+      <CardContent className="p-4 pt-0 pb-3">
+        {auction.highestBidPlaced ? (
+          <div className="space-y-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold">
+                ${auction.highestBidPlaced.amount?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-green-600">
+              <TrendingUp className="h-3 w-3" />
+              <span className="font-medium">Current bid</span>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold">
+                ${auction.startingPrice?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground">Starting bid</div>
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="p-4 pt-0 flex flex-wrap gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="flex-1 h-8 text-xs min-w-[60px]" 
+                className="flex-1 h-9 text-sm min-w-[80px] font-semibold group-hover:shadow-md transition-shadow" 
                 size="sm"
                 variant="outline"
-                onClick={() => navigate(`/auctions/${auction.id}`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/auctions/${auction.id}`);
+                }}
               >
-                <Eye className="h-3 w-3 mr-1" />
+                <Eye className="h-4 w-4 mr-1" />
                 View
               </Button>
             </TooltipTrigger>
@@ -888,12 +1000,15 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
-                  className="h-8 text-xs" 
+                  className="h-9 hover:bg-primary/10 hover:text-primary transition-colors" 
                   size="sm"
                   variant="outline"
-                  onClick={() => onEdit(auction)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(auction);
+                  }}
                 >
-                  <Pencil className="h-3 w-3" />
+                  <Pencil className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -908,7 +1023,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
               <TooltipTrigger asChild>
                 <span>
                   <Button 
-                    className="h-8 text-xs" 
+                    className="h-9" 
                     size="sm"
                     variant="outline"
                     disabled
@@ -1025,7 +1140,7 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
   const { data: seller } = useUser(product.sellerId);
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
+    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 group border-2 hover:border-orange-500/50 hover:scale-[1.02] opacity-75 hover:opacity-100">
       <div 
         className="relative aspect-square bg-gradient-to-br from-muted to-muted/50"
       >
@@ -1033,51 +1148,50 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
           <img 
             src={product.images[0].imageUri} 
             alt={product.title}
-            className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover opacity-60 group-hover:opacity-80 group-hover:scale-110 transition-all duration-500"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Package className="h-16 w-16 text-muted-foreground/30 opacity-60" />
           </div>
         )}
-        <div className="absolute top-2 right-2">
-          <Badge variant="secondary">Unlisted</Badge>
+        <div className="absolute top-3 right-3 z-10">
+          <Badge variant="secondary" className="shadow-lg backdrop-blur-sm font-semibold">
+            Unlisted
+          </Badge>
         </div>
         {/* Gradient Overlay */}
         <div className="absolute inset-x-0 -bottom-4 h-full bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
       
-      <CardHeader className="p-3 pb-2">
-        <h3 className="font-semibold text-sm truncate">{product.title}</h3>
+      <CardHeader className="p-4 pb-3 space-y-2">
+        <h3 className="font-bold text-base line-clamp-2">{product.title}</h3>
         {seller && (
-          <div className="flex items-center gap-2 text-xs mb-1">
-            <Avatar className="h-5 w-5">
+          <div className="flex items-center gap-2 text-xs">
+            <Avatar className="h-6 w-6 border-2 border-background shadow-sm">
               <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
-              <AvatarFallback className="text-[10px]">
-                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-2 w-2" />}
+              <AvatarFallback className="text-[10px] font-medium">
+                {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
               </AvatarFallback>
             </Avatar>
-            <span className="text-muted-foreground">Sold by</span>
-            <span className="font-medium">
-              {seller.name || (seller.firstName && seller.lastName ? `${seller.firstName} ${seller.lastName}` : seller.firstName || seller.username || 'Seller')}
-            </span>
+            <span className="text-muted-foreground">by you</span>
           </div>
         )}
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground italic">
           Not currently listed for sale
         </p>
       </CardHeader>
       
-      <CardFooter className="p-3 pt-0 flex gap-2">
+      <CardFooter className="p-4 pt-0 flex gap-2">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="flex-1 h-8 text-xs" 
+                className="flex-1 h-9 font-semibold" 
                 size="sm"
                 onClick={() => navigate(`/create-item?step=1&productId=${product.productId}`)}
               >
-                <ListPlus className="h-3 w-3 mr-1" />
+                <ListPlus className="h-4 w-4 mr-1" />
                 List
               </Button>
             </TooltipTrigger>
@@ -1089,12 +1203,12 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="h-8 text-xs" 
+                className="h-9 hover:bg-primary/10 hover:text-primary transition-colors" 
                 size="sm"
                 variant="outline"
                 onClick={() => onEdit(product)}
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -1105,12 +1219,12 @@ const UnlistedProductCard = ({ product, onDelete, onEdit }) => {
           <Tooltip>
             <TooltipTrigger asChild>
               <Button 
-                className="h-8 text-xs" 
+                className="h-9 hover:bg-destructive/10 hover:text-destructive transition-colors" 
                 size="sm"
-                variant="destructive"
+                variant="outline"
                 onClick={() => onDelete(product, 'product')}
               >
-                <Trash2 className="h-3 w-3" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
