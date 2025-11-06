@@ -75,6 +75,7 @@ function App() {
                 <Route path="/cart" element={<CartPage />} />
                 {/* <Route path="/watchlist" element={<WatchlistPage />} /> */}
                 <Route path="/checkout" element={<CheckoutPage />} />
+                <Route path="/checkout/:orderId" element={<CheckoutPage />} />
                 <Route path="/auction-checkout/:orderId" element={<AuctionCheckoutPage />} />
                 <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
                 <Route path="/my-orders" element={<MyOrdersPage />} />
