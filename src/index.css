@@ -89,4 +89,49 @@
   *::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
+  
+  /* Fix Sonner toast alignment */
+  [data-sonner-toast] {
+    align-items: flex-start !important;
+  }
+  
+  [data-sonner-toast] [data-content] {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  [data-sonner-toast] [data-title],
+  [data-sonner-toast] [data-description] {
+    text-align: left;
+  }
+  
+  /* Animated gradient background */
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 15s ease infinite;
+  }
+  
+  /* Hide scrollbar for category slider */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

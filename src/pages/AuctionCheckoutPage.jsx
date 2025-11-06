@@ -5,6 +5,8 @@ import { useOrder, useProvideAddress, useCheckoutStatus, useCancelCheckout } fro
 import { useAddresses } from '../hooks/useAddress';
 import { useCreatePaymentIntent } from '../hooks/usePayments';
 import { useAuction } from '../hooks/useAuctions';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../hooks/queryKeys';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
@@ -19,7 +21,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
-import { ArrowLeft, Package, MapPin, CreditCard, Loader2, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, CreditCard, Loader2, XCircle, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AddressManagementModal } from '../components/AddressManagementModal';
 import { Link } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -81,19 +84,27 @@ const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError }) => {
   );
 };
 
+// Format status to proper case
+const formatStatus = (status) => {
+  if (!status) return '';
+  return status.charAt(0) + status.slice(1).toLowerCase();
+};
+
 export const AuctionCheckoutPage = () => {
   const { orderId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [currentStep, setCurrentStep] = useState('address'); // 'address' | 'payment' | 'processing'
   const [clientSecret, setClientSecret] = useState(null);
   const [error, setError] = useState(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
   const { data: order, isLoading: isLoadingOrder } = useOrder(orderId);
-  const { data: addresses = [], isLoading: isLoadingAddresses } = useAddresses();
+  const { data: addresses = [], isLoading: isLoadingAddresses, refetch: refetchAddresses } = useAddresses();
   const { data: auction, isLoading: isLoadingAuction } = useAuction(order?.auctionId, {
     enabled: !!order?.auctionId
   });
@@ -101,10 +112,61 @@ export const AuctionCheckoutPage = () => {
   const createPaymentIntent = useCreatePaymentIntent();
   const cancelCheckout = useCancelCheckout();
   
-  // Poll for checkout status
+  // Poll for checkout status when processing
   const { data: checkoutStatus } = useCheckoutStatus(orderId, {
-    enabled: !!orderId && currentStep === 'processing'
+    enabled: !!orderId && currentStep === 'processing',
+    refetchInterval: 2000 // Poll every 2 seconds
   });
+
+  // Handle checkout status changes (when polling during processing)
+  useEffect(() => {
+    if (!checkoutStatus || !orderId) return;
+    
+    console.log('Checkout status updated:', checkoutStatus);
+    
+    // Refetch the order to get updated status
+    queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+  }, [checkoutStatus, orderId, queryClient]);
+
+  // Determine current step based on order state (for resuming checkout)
+  useEffect(() => {
+    if (!order) return;
+
+    console.log('Determining step for auction order:', order);
+    console.log('Order has clientSecret:', !!order.clientSecret);
+    console.log('Order paymentStatus:', order.paymentStatus);
+    console.log('Order shippingAddress:', order.shippingAddress);
+
+    // If payment is authorized, show processing
+    if (order.paymentStatus === 'AUTHORIZED') {
+      console.log('Setting step to processing');
+      setCurrentStep('processing');
+    }
+    // If we have a clientSecret and payment is still pending, go to payment step
+    else if (order.clientSecret && order.paymentStatus === 'PENDING') {
+      console.log('Setting step to payment with clientSecret');
+      setClientSecret(order.clientSecret);
+      setCurrentStep('payment');
+    }
+    // If order has address but no clientSecret yet, show address step
+    else if (order.shippingAddress && !order.clientSecret) {
+      console.log('Order has address but no payment intent, staying on address step');
+      // Pre-select the address if it matches one in the user's addresses
+      const matchingAddress = addresses.find(addr => 
+        addr.street === order.shippingAddress.street &&
+        addr.city === order.shippingAddress.city
+      );
+      if (matchingAddress) {
+        setSelectedAddressId(matchingAddress.addressId?.toString());
+      }
+      setCurrentStep('address');
+    }
+    // Default to address step
+    else {
+      console.log('Defaulting to address step');
+      setCurrentStep('address');
+    }
+  }, [order, addresses]);
 
   const handleProvideAddress = async () => {
     if (!selectedAddressId) {
@@ -208,18 +270,6 @@ export const AuctionCheckoutPage = () => {
     setCancelDialogOpen(false);
   };
 
-  // Monitor checkout status
-  useEffect(() => {
-    if (checkoutStatus) {
-      if (checkoutStatus.status === 'COMPLETED') {
-        navigate(`/order-success/${orderId}`);
-      } else if (checkoutStatus.status === 'FAILED') {
-        setError(checkoutStatus.errorMessage || 'Checkout failed');
-        setCurrentStep('address');
-      }
-    }
-  }, [checkoutStatus, navigate, orderId]);
-
   if (isLoadingOrder || isLoadingAddresses || isLoadingAuction) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -266,6 +316,53 @@ export const AuctionCheckoutPage = () => {
     );
   }
 
+  // Check if order is already completed or failed
+  if (order.status === 'COMPLETED' || order.status === 'CONFIRMED') {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-6 max-w-md">
+          <CheckCircle2 className="h-24 w-24 text-green-600 mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">Order Completed</h2>
+            <p className="text-muted-foreground">Your order has been successfully completed</p>
+            <div className="pt-4">
+              <Badge variant="secondary" className="text-lg px-4 py-2">Order #{orderId}</Badge>
+            </div>
+          </div>
+          <Button asChild size="lg">
+            <Link to="/">Go Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (order.status === 'FAILED' || order.status === 'CANCELLED') {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center space-y-6 max-w-md">
+          <XCircle className="h-24 w-24 text-destructive mx-auto" />
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold">
+              {order.status === 'FAILED' ? 'Order Failed' : 'Order Cancelled'}
+            </h2>
+            <p className="text-muted-foreground">
+              {order.status === 'FAILED' 
+                ? 'Your order could not be completed. Please try again.' 
+                : 'This order has been cancelled.'}
+            </p>
+            <div className="pt-4">
+              <Badge variant="destructive" className="text-lg px-4 py-2">Order #{orderId}</Badge>
+            </div>
+          </div>
+          <Button asChild size="lg">
+            <Link to="/">Go Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
@@ -294,7 +391,7 @@ export const AuctionCheckoutPage = () => {
             <div className="p-2 bg-primary/10 rounded-full">
               <Package className="h-5 w-5 text-primary" />
             </div>
-            <div>
+            <div className="text-center flex-1">
               <h3 className="font-semibold">Congratulations!</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 You won this auction. Please complete your purchase to secure your item.
@@ -321,8 +418,8 @@ export const AuctionCheckoutPage = () => {
                 {addresses.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground mb-4">You haven't added any addresses yet</p>
-                    <Button asChild>
-                      <Link to="/addresses">Add Address</Link>
+                    <Button onClick={() => setIsAddressModalOpen(true)}>
+                      Add Address
                     </Button>
                   </div>
                 ) : (
@@ -448,7 +545,7 @@ export const AuctionCheckoutPage = () => {
                         <Package className="h-6 w-6 text-muted-foreground" />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-medium truncate">{item.productName}</p>
                       <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                       <p className="text-sm font-semibold">${Number(item.unitPrice).toFixed(2)}</p>
@@ -465,10 +562,6 @@ export const AuctionCheckoutPage = () => {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">${Number(order.totalAmount).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span className="font-medium">Calculated at checkout</span>
-                </div>
               </div>
 
               <Separator />
@@ -482,11 +575,11 @@ export const AuctionCheckoutPage = () => {
               <div className="pt-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Order Status</span>
-                  <Badge variant="secondary">{order.status}</Badge>
+                  <Badge variant="secondary">{formatStatus(order.status)}</Badge>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-2">
                   <span className="text-muted-foreground">Payment Status</span>
-                  <Badge variant="secondary">{order.paymentStatus}</Badge>
+                  <Badge variant="secondary">{formatStatus(order.paymentStatus)}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -524,6 +617,17 @@ export const AuctionCheckoutPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Address Management Modal */}
+      <AddressManagementModal 
+        open={isAddressModalOpen} 
+        onOpenChange={setIsAddressModalOpen}
+        onSelectAddress={(address) => {
+          setSelectedAddressId(address.addressId?.toString());
+          refetchAddresses();
+          setIsAddressModalOpen(false);
+        }}
+      />
     </div>
   );
 };

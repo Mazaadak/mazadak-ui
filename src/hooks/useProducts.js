@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productAPI } from '../api/products';
 import { queryKeys } from './queryKeys';
+import { v4 as uuidv4 } from 'uuid';
 
 export const useProducts = (filters = {}, pageable = {}) => {
   return useQuery({
@@ -77,8 +78,10 @@ export const useCreateProduct = (options = {}) => {
 
 export const useCategories = () => {
   return useQuery({
-    queryKey: queryKeys.products.categories,
+    queryKey: queryKeys.categories.categories,
     queryFn: () => productAPI.getCategories(),
+    staleTime: 1000 * 60 * 60, // Categories don't change often, cache for 1 hour
+    cacheTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
   });
 }
 
@@ -106,3 +109,74 @@ export const useListingStatus = (productId, idempotencyKey) => {
     refetchInterval: 2000, // Poll every 2 seconds
   });
 }
+
+// Ratings
+export const useProductRatings = (productId, page = 0, size = 10) => {
+  return useQuery({
+    queryKey: queryKeys.products.ratings(productId, page, size),
+    queryFn: () => productAPI.getProductRatings(productId, page, size),
+    enabled: !!productId,
+  });
+};
+
+export const useCreateRating = () => {
+  const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : uuidv4();
+
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ productId, data }) => 
+      productAPI.createRating(productId, data, idempotencyKey),
+    
+    onSuccess: (data, variables) => {
+      // Invalidate all rating queries for this product (all pages)
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.ratingsForProduct(variables.productId) 
+      });
+      // Also invalidate product to update average rating
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.product(variables.productId) 
+      });
+    },
+  });
+};
+
+export const useUpdateRating = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ ratingId, data }) => 
+      productAPI.updateRating(ratingId, data),
+    
+    onSuccess: () => {
+      // Invalidate all ratings and products
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.allRatings 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.products 
+      });
+    },
+  });
+};
+
+export const useDeleteRating = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (ratingId) => 
+      productAPI.deleteRating(ratingId),
+    
+    onSuccess: () => {
+      // Invalidate all ratings and products
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.allRatings 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products.products 
+      });
+    },
+  });
+};

@@ -21,6 +21,7 @@ import { AuctionCountdown } from '../components/auction/AuctionCountdown';
 import { BidForm } from '../components/auction/BidForm';
 import { ProxyBidForm } from '../components/auction/ProxyBidForm';
 import { BidHistory } from '../components/auction/BidHistory';
+import { EditAuctionSheet } from '../components/EditAuctionSheet';
 import { 
   ArrowLeft, 
   Package, 
@@ -33,7 +34,8 @@ import {
   Pause,
   Play,
   XCircle,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { 
   canUserBid, 
@@ -51,6 +53,7 @@ const AuctionDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   
   const pauseAuction = usePauseAuction();
   const resumeAuction = useResumeAuction();
@@ -66,8 +69,8 @@ const AuctionDetails = () => {
   // Fetch product details
   const { data: product, isLoading: isLoadingProduct } = useProduct(auction?.productId);
 
-  // Fetch seller details
-  const { data: seller, isLoading: isLoadingSeller } = useUser(auction?.sellerId);
+  // Fetch seller details - only if user is authenticated
+  const { data: seller, isLoading: isLoadingSeller } = useUser(user ? auction?.sellerId : null);
 
   // Fetch bid history to get user's actual last bid (including proxy bids)
   const { data: bidsData } = useBids(
@@ -236,7 +239,7 @@ const AuctionDetails = () => {
             {seller && (
               <div className="flex items-center gap-2 text-sm mb-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={seller.avatar} alt={seller.name || seller.username} />
+                  <AvatarImage src={seller.personalPhoto} alt={seller.name || seller.username} />
                   <AvatarFallback className="text-xs">
                     {(seller.name || seller.firstName || seller.username)?.substring(0, 2).toUpperCase() || <User className="h-3 w-3" />}
                   </AvatarFallback>
@@ -301,17 +304,17 @@ const AuctionDetails = () => {
               
               <Separator className="my-4" />
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground">Bid Increment</p>
                   <p className="font-medium">{formatCurrency(auction.bidIncrement)}</p>
                 </div>
-                <div>
+                {/* <div>
                   <p className="text-muted-foreground">Reserve Price</p>
                   <p className="font-medium">
                     {auction.reservePrice ? formatCurrency(auction.reservePrice) : 'None'}
                   </p>
-                </div>
+                </div> */}
               </div>
             </CardContent>
           </Card>
@@ -365,6 +368,18 @@ const AuctionDetails = () => {
               <CardContent className="pt-6">
                 <div className="flex flex-col gap-3">
                   <h3 className="text-sm font-medium text-center mb-2">Auction Management</h3>
+                  
+                  {/* Edit button - Only for SCHEDULED status */}
+                  {auction.status === 'SCHEDULED' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => setEditSheetOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Auction
+                    </Button>
+                  )}
                   
                   {/* Pause button - Only for STARTED status */}
                   {auction.status === 'STARTED' && (
@@ -556,6 +571,15 @@ const AuctionDetails = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Auction Sheet */}
+      {auction && (
+        <EditAuctionSheet
+          open={editSheetOpen}
+          onOpenChange={setEditSheetOpen}
+          auction={auction}
+        />
+      )}
     </div>
   );
 };

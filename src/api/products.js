@@ -49,4 +49,20 @@ export const productAPI = {
 
     getListingStatus: (id, idempotencyKey) => apiClient.get(`/products/listings/${id}/status`, { headers: { "Idempotency-Key": idempotencyKey } }),
     
+    // Ratings
+    getProductRatings: (productId, page = 0, size = 10) => 
+        apiClient.get(`/products/${productId}/ratings`, {
+            params: { page, size, sortField: 'ratingId', direction: 'desc' }
+        }),
+    
+    createRating: (productId, data, idempotencyKey) =>
+        apiClient.post(`/products/${productId}/ratings`, data, { 
+            headers: { 'Idempotency-Key': idempotencyKey } 
+        }),
+
+    updateRating: (ratingId, data) => 
+        apiClient.put(`/products/ratings/${ratingId}`, data),
+    
+    deleteRating: (ratingId) => 
+        apiClient.delete(`/products/ratings/${ratingId}`),
 }

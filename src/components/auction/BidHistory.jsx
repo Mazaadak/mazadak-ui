@@ -28,7 +28,7 @@ const BidderInfo = ({ bidderId, isUserBid, isHighest }) => {
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2 mb-1">
         <Avatar className="h-6 w-6">
-          <AvatarImage src={user?.avatar} alt={displayName} />
+          <AvatarImage src={user?.personalPhoto} alt={displayName} />
           <AvatarFallback className="text-xs">{initials}</AvatarFallback>
         </Avatar>
         <span className="font-medium text-sm truncate">{displayName}</span>

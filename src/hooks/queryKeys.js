@@ -13,6 +13,9 @@ export const queryKeys = {
         product: (id) => ['products', id],
         listingStatus: (id) => ['products', id, 'listingStatus'],
         userProducts: ['products', 'my-listings'],
+        allRatings: ['products', 'ratings'],
+        ratingsForProduct: (productId) => ['products', productId, 'ratings'],
+        ratings: (productId, page, size) => ['products', productId, 'ratings', page, size],
     },
     users: {
         user: (id) => ['users', id],
@@ -32,12 +35,6 @@ export const queryKeys = {
     addresses: {
         addresses: ['addresses'],
         address: (id) => ['addresses', id],
-    },
-    ratings: {
-        all: ['ratings'],
-        productRatings: (productId, page, size) => ['ratings', 'product', productId, page, size],
-        userRatings: (userId, page, size) => ['ratings', 'user', userId, page, size],
-        rating: (ratingId) => ['ratings', ratingId],
     },
     orders: {
         orders: ['orders'],
