@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Badge } from '../components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '../components/ui/radio-group';
 import { Label } from '../components/ui/label';
-import { ArrowLeft, Package, MapPin, CreditCard, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Package, MapPin, CreditCard, Loader2, CheckCircle2, XCircle, Link } from 'lucide-react';
 import { AddressManagementModal } from '../components/AddressManagementModal';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
