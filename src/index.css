@@ -124,4 +124,14 @@
     background-size: 200% 200%;
     animation: gradient 15s ease infinite;
   }
+  
+  /* Hide scrollbar for category slider */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

@@ -78,8 +78,10 @@ export const useCreateProduct = (options = {}) => {
 
 export const useCategories = () => {
   return useQuery({
-    queryKey: queryKeys.products.categories,
+    queryKey: queryKeys.categories.categories,
     queryFn: () => productAPI.getCategories(),
+    staleTime: 1000 * 60 * 60, // Categories don't change often, cache for 1 hour
+    cacheTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
   });
 }
 

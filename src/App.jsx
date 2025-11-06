@@ -1,7 +1,6 @@
 import "./App.css";
 import { Routes, Route, createBrowserRouter, createRoutesFromElements, RouterProvider, BrowserRouter } from "react-router-dom";
 import { MainLayout } from "./layouts/MainLayout";
-import { HomePage } from "./pages/HomePage";
 import { AuthProvider } from "./contexts/AuthContext";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage.jsx";
@@ -60,7 +59,7 @@ function App() {
             <ToasterWithTheme />
             <Routes>
               <Route element={<MainLayout />}>
-                <Route path="/" element={<HomePage />} />
+                <Route path="/" element={<ListingsPage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/verify" element={<VerifyPage />} />

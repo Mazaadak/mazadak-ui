@@ -19,7 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { useBids } from '../hooks/useAuctions';
 import { BidHistory } from '../components/auction/BidHistory';
-import { useProduct } from '../hooks/useProducts';
+import { useProduct, useCategories } from '../hooks/useProducts';
 
 // Auction Card Component
 const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
@@ -236,6 +236,41 @@ const ListingsPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+  const { data: categoriesData } = useCategories();
+  const categoryScrollRef = React.useRef(null);
+  const [showLeftShadow, setShowLeftShadow] = React.useState(false);
+  const [showRightShadow, setShowRightShadow] = React.useState(false);
+
+  const checkScroll = () => {
+    if (categoryScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = categoryScrollRef.current;
+      setShowLeftShadow(scrollLeft > 0);
+      setShowRightShadow(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  React.useEffect(() => {
+    checkScroll();
+    const scrollContainer = categoryScrollRef.current;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      return () => {
+        scrollContainer.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [categoriesData]);
+
+  const scrollCategories = (direction) => {
+    if (categoryScrollRef.current) {
+      const scrollAmount = 200;
+      categoryScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Get all state from URL params with defaults
   const activeTab = searchParams.get('tab') || 'auctions';
@@ -716,25 +751,111 @@ const ListingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b">
+      <div className="border-b bg-gradient-to-b from-muted/30 to-background">
         <div className="container mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold mb-6">Marketplace</h1>
+          <div className="flex items-center justify-center mb-6">
+            <div className="text-center"> 
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                Marketplace
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Discover amazing deals and unique items
+              </p>
+            </div>
+          </div>
+          
+          {/* Categories Slider - Only show for Fixed Price tab */}
+          {activeTab === 'fixed' && categoriesData && categoriesData.length > 0 && (
+            <div className="mb-6 relative group">
+              {/* Left Shadow */}
+              {showLeftShadow && (
+                <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-background via-background/50 to-transparent z-[5] pointer-events-none" />
+              )}
+
+              {/* Left Arrow */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-0 top-0 z-10 h-9 w-9 rounded-lg bg-gradient-to-br from-primary/90 to-primary hover:from-primary hover:to-primary/80 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                onClick={() => scrollCategories('left')}
+              >
+                <ChevronLeft className="h-5 w-5 text-primary-foreground" />
+              </Button>
+
+              {/* Categories */}
+              <div className="overflow-hidden -mx-4 px-14">
+                <div ref={categoryScrollRef} className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-4">
+                  <Button
+                    variant={productFilters.categories.length === 0 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleProductFilterChange({ categories: '' })}
+                    className="whitespace-nowrap font-semibold transition-all duration-200 hover:scale-105 h-9"
+                  >
+                    All Categories
+                  </Button>
+                  {categoriesData.map((category) => (
+                    <Button
+                      key={category.categoryId}
+                      variant={productFilters.categories.includes(category.categoryId.toString()) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        const currentCategories = productFilters.categories;
+                        const categoryIdStr = category.categoryId.toString();
+                        
+                        if (currentCategories.includes(categoryIdStr)) {
+                          // Remove category
+                          const newCategories = currentCategories.filter(id => id !== categoryIdStr);
+                          handleProductFilterChange({ categories: newCategories.length > 0 ? newCategories.join(',') : '' });
+                        } else {
+                          // Add category
+                          const newCategories = [...currentCategories, categoryIdStr];
+                          handleProductFilterChange({ categories: newCategories.join(',') });
+                        }
+                      }}
+                      className="whitespace-nowrap font-semibold transition-all duration-200 hover:scale-105 h-9"
+                    >
+                      {category.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Arrow */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 z-10 h-9 w-9 rounded-lg bg-gradient-to-br from-primary/90 to-primary hover:from-primary hover:to-primary/80 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                onClick={() => scrollCategories('right')}
+              >
+                <ChevronRight className="h-5 w-5 text-primary-foreground" />
+              </Button>
+
+              {/* Right Shadow */}
+              {showRightShadow && (
+                <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-background via-background/50 to-transparent z-[5] pointer-events-none" />
+              )}
+            </div>
+          )}
           
           <div className="flex gap-3 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <div className="relative flex-1 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input
                 type="text"
-                placeholder="Search listings..."
+                placeholder="Search for products, auctions, and more..."
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 border-2 focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
               />
             </div>
             
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-11 w-11 border-2 hover:border-primary transition-all duration-200 hover:scale-105"
+                >
                   <Filter className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
@@ -752,19 +873,43 @@ const ListingsPage = () => {
             </Sheet>
           </div>
           
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList>
-              <TabsTrigger value="auctions">
-                Auctions
-                <Badge variant="secondary" className="ml-2">
-                  {auctionTotalElements}
-                </Badge>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full flex justify-center">
+            <TabsList className="grid max-w-md grid-cols-2 h-12 p-1 bg-muted/50">
+              <TabsTrigger 
+                value="auctions" 
+                className="relative data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-200 h-full rounded-md font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Gavel className="h-4 w-4" />
+                  <span>Auctions</span>
+                  <Badge 
+                    variant={activeTab === 'auctions' ? 'default' : 'secondary'} 
+                    className="ml-1 transition-all duration-200 font-bold"
+                  >
+                    {auctionTotalElements}
+                  </Badge>
+                </div>
+                {activeTab === 'auctions' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-t-full" />
+                )}
               </TabsTrigger>
-              <TabsTrigger value="fixed">
-                Fixed Price 
-                <Badge variant="secondary" className="ml-2">
-                  {productTotalElements}
-                </Badge>
+              <TabsTrigger 
+                value="fixed"
+                className="relative data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-200 h-full rounded-md font-semibold"
+              >
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  <span>Fixed Price</span>
+                  <Badge 
+                    variant={activeTab === 'fixed' ? 'default' : 'secondary'} 
+                    className="ml-1 transition-all duration-200 font-bold"
+                  >
+                    {productTotalElements}
+                  </Badge>
+                </div>
+                {activeTab === 'fixed' && (
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-t-full" />
+                )}
               </TabsTrigger>
             </TabsList>
           </Tabs>
