@@ -1,7 +1,6 @@
-import { useProduct, useDeleteProduct } from "../hooks/useProducts";
+import { useProduct, useDeleteProduct, useProductRatings } from "../hooks/useProducts";
 import { useInventoryItem, useDeleteInventoryItem } from "../hooks/useInventory";
 import { useAddToCart } from "../hooks/useCart";
-import { useProductRatings } from "../hooks/useRatings";
 import { useUser } from "../hooks/useUsers";
 import { useAuth } from "../contexts/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
@@ -40,6 +39,7 @@ const FixedPriceDetails = () => {
   const [ratingsPage, setRatingsPage] = useState(0);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [triggerReviewEdit, setTriggerReviewEdit] = useState(false);
 
   const deleteProduct = useDeleteProduct();
   const deleteInventory = useDeleteInventoryItem();
@@ -441,67 +441,128 @@ const FixedPriceDetails = () => {
       <div className="mt-12">
         <Separator className="mb-8" />
         
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Leave a Review */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Leave a Review
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <RatingForm 
-                  productId={productId}
-                  onSuccess={() => {
-                    console.log('Review submitted successfully!');
-                  }}
-                />
-              </CardContent>
-            </Card>
-          </div>
+        <h2 className="text-3xl font-bold mb-6">Customer Reviews</h2>
 
-          {/* Reviews List */}
-          <div>
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">Customer Reviews</h2>
-              {ratingsData?.totalElements > 0 && (
-                <p className="text-muted-foreground">
-                  {ratingsData.totalElements} {ratingsData.totalElements === 1 ? 'review' : 'reviews'}
-                </p>
-              )}
+        {/* Write Review Form - Top */}
+        {!isOwner && (
+          <Card id="review-form" className="border-primary/50 bg-primary/5 mb-6">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4">Write a Review</h3>
+              <RatingForm 
+                productId={productId}
+                userId={user?.userId}
+                existingRatings={ratingsData?.content || []}
+                triggerEdit={triggerReviewEdit}
+                onSuccess={() => {
+                  console.log('Review submitted successfully!');
+                  setTriggerReviewEdit(false);
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Main Content: Summary Left, Reviews Right */}
+        {product.ratings && product.ratings.length > 0 ? (
+          <div className="grid lg:grid-cols-[350px_1fr] gap-6">
+            {/* Left: Rating Summary - Sticky */}
+            <div className="lg:sticky lg:top-4 h-fit">
+              <Card className="border-2">
+                <CardContent className="pt-6">
+                  <div className="text-center mb-4">
+                    <div className="text-5xl font-bold mb-2">{averageRating}</div>
+                    <div className="flex items-center justify-center gap-1 mb-2">
+                      {renderStars(averageRating)}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {ratingsData?.totalElements || product.ratings.length} {(ratingsData?.totalElements || product.ratings.length) === 1 ? 'review' : 'reviews'}
+                    </p>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  {/* Rating Distribution */}
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map((stars) => {
+                      const count = product.ratings.filter(r => r.rating === stars).length;
+                      const percentage = (count / product.ratings.length) * 100;
+                      return (
+                        <div key={stars} className="flex items-center gap-2">
+                          <span className="text-sm w-8">{stars}★</span>
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-yellow-400 transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground w-8 text-right">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <RatingList 
-              ratings={ratingsData?.content || []}
-              isLoading={ratingsLoading}
-            />
+            {/* Right: Reviews List - Scrollable */}
+            <div className="space-y-4">
+              <div className="space-y-4">
+                <RatingList 
+                  ratings={ratingsData?.content || []}
+                  isLoading={ratingsLoading}
+                  currentUserId={user?.userId}
+                  onEdit={(rating) => {
+                    // Trigger edit mode in the form
+                    setTriggerReviewEdit(true);
+                    // Scroll to the review form
+                    setTimeout(() => {
+                      const reviewSection = document.getElementById('review-form');
+                      if (reviewSection) {
+                        reviewSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }, 100);
+                  }}
+                />
 
-            {/* Pagination */}
-            {ratingsData && ratingsData.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => setRatingsPage(prev => Math.max(0, prev - 1))}
-                  disabled={ratingsPage === 0}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  Page {ratingsPage + 1} of {ratingsData.totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setRatingsPage(prev => prev + 1)}
-                  disabled={ratingsPage >= ratingsData.totalPages - 1}
-                >
-                  Next
-                </Button>
+                {/* Pagination */}
+                {ratingsData && ratingsData.totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => setRatingsPage(prev => Math.max(0, prev - 1))}
+                      disabled={ratingsPage === 0}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {ratingsPage + 1} of {ratingsData.totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      onClick={() => setRatingsPage(prev => prev + 1)}
+                      disabled={ratingsPage >= ratingsData.totalPages - 1}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* No reviews yet */
+          <Card className={isOwner ? "border-muted bg-muted/20" : "border-primary/50 bg-primary/5"}>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <MessageSquare className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Reviews Yet</h3>
+                <p className="text-muted-foreground">
+                  {isOwner ? "You cannot review your own product" : "Be the first to share your experience with this product!"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Edit Sheet */}
