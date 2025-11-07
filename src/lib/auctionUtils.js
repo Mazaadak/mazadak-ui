@@ -185,6 +185,14 @@ export const getAuctionStatusVariant = (status) => {
 };
 
 /**
+ * Format auction status to capitalize first letter
+ */
+export const formatAuctionStatus = (status) => {
+  if (!status) return '';
+  return status.charAt(0) + status.slice(1).toLowerCase();
+};
+
+/**
  * Format currency
  */
 export const formatCurrency = (amount) => {

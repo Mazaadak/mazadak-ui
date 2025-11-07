@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { AuctionCountdown } from '../components/auction/AuctionCountdown';
 
 // Auction Card Component
-const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
+const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, formatStatus, isAuthenticated }) => {
   // Only fetch seller data if user is authenticated
   const { data: seller } = useUser(isAuthenticated ? auction.sellerId : null);
   const { data: bidData } = useBids(auction.id, { size: 1000 }); // Fetch all bids to get count
@@ -42,7 +42,7 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
         <div className="absolute top-3 left-3 z-10">
           <Badge variant={getStatusVariant(auction.status)} className="text-xs font-semibold shadow-lg">
             {getStatusIcon(auction.status)}
-            {auction.status}
+            {formatStatus(auction.status)}
           </Badge>
         </div>
         
@@ -532,6 +532,11 @@ const ListingsPage = () => {
     };
     return icons[status] || null;
   };
+
+  const formatStatus = (status) => {
+    if (!status) return '';
+    return status.charAt(0) + status.slice(1).toLowerCase();
+  };
   
   const clearFilters = () => {
     // Clear all filter-related params
@@ -1010,6 +1015,7 @@ const ListingsPage = () => {
                       getStatusVariant={getStatusVariant}
                       getTimeRemaining={getTimeRemaining}
                       getStatusIcon={getStatusIcon}
+                      formatStatus={formatStatus}
                       isAuthenticated={!!user}
                     />
                   ))}
