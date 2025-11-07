@@ -21,6 +21,7 @@ import { useBids } from '../hooks/useAuctions';
 import { BidHistory } from '../components/auction/BidHistory';
 import { useProduct, useCategories } from '../hooks/useProducts';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AuctionCountdown } from '../components/auction/AuctionCountdown';
 
 // Auction Card Component
 const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
@@ -46,12 +47,13 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
         </div>
         
         {/* Time Remaining */}
-        {auction.status === 'ACTIVE' && (
+        {(auction.status === 'ACTIVE' || auction.status === 'STARTED') && (
           <div className="absolute top-3 right-3 z-10">
-            <Badge variant="secondary" className="bg-black/80 text-white hover:bg-black text-xs font-semibold shadow-lg backdrop-blur-sm">
-              <Clock className="h-3 w-3 mr-1" />
-              {getTimeRemaining(auction.endTime)}
-            </Badge>
+            <AuctionCountdown 
+              endTime={auction.endTime}
+              status={auction.status}
+              className="bg-black/80 text-white hover:bg-black backdrop-blur-sm"
+            />
           </div>
         )}
         
