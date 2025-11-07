@@ -28,6 +28,7 @@ export const queryKeys = {
     cart: {
         cart: ['cart'],
         cartItem: (id) => ['cart','item', id],
+        isActive: ['cart', 'is-active'],
     },
     inventory: {
         item: (id) => ['inventory', id],

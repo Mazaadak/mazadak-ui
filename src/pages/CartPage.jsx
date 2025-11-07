@@ -1,18 +1,30 @@
-import { useCartItems, useAddToCart, useRemoveFromCart, useUpdateCartItem, useClearCart } from '../hooks/useCart';
+import { useCartItems, useAddToCart, useRemoveFromCart, useUpdateCartItem, useClearCart, useIsCartActive } from '../hooks/useCart';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Separator } from '../components/ui/separator';
 import { Minus, Plus, Trash2, ShoppingCartIcon, Package } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export const CartPage = () => {
+  const navigate = useNavigate();
   const { data: cartItems = [], isLoading, error } = useCartItems();
+  const { data: isCartActive, isLoading: isLoadingCartStatus } = useIsCartActive();
   const addToCart = useAddToCart();
   const removeFromCart = useRemoveFromCart();
   const updateCartItem = useUpdateCartItem();
   const clearCart = useClearCart();
 
-  if (isLoading) {
+  // Redirect to home if cart is inactive
+  useEffect(() => {
+    if (!isLoadingCartStatus && isCartActive === false) {
+      toast.error('Cart is currently unavailable during checkout');
+      navigate('/', { replace: true });
+    }
+  }, [isCartActive, isLoadingCartStatus, navigate]);
+
+  if (isLoading || isLoadingCartStatus) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">

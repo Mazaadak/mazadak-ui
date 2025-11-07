@@ -20,4 +20,7 @@ export const cartAPI = {
 
     // clear cart (POST /carts/clear)
     clearCart: () => apiClient.post(`/carts/clear`),
+
+    // check if cart is active (GET /carts/is-active)
+    isCartActive: () => apiClient.get(`/carts/is-active`),
 };

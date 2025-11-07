@@ -197,11 +197,29 @@ export const AuctionCheckoutPage = () => {
     if (checkoutStatus.status === 'FAILED') {
       console.log('Workflow failed, refetching order');
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+      // Re-enable cart after failure - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
     }
     // If workflow completed, refetch order to get COMPLETED/CONFIRMED status
     else if (checkoutStatus.status === 'COMPLETED') {
       console.log('Workflow completed, refetching order');
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+      // Re-enable cart after completion - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
     }
   }, [checkoutStatus, orderId, queryClient]);
 
@@ -353,6 +371,15 @@ export const AuctionCheckoutPage = () => {
   const handleCancelCheckout = async () => {
     try {
       await cancelCheckout.mutateAsync(orderId);
+      // Re-enable cart after cancellation - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
       navigate('/my-orders');
     } catch (err) {
       console.error('Cancel checkout error:', err);

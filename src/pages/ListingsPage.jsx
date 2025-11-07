@@ -13,13 +13,14 @@ import { Label } from '@/components/ui/label';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useAuctions } from '@/hooks/useAuctions';
-import { useAddToCart } from '../hooks/useCart';
+import { useAddToCart, useIsCartActive } from '../hooks/useCart';
 import { useUser } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { useBids } from '../hooks/useAuctions';
 import { BidHistory } from '../components/auction/BidHistory';
 import { useProduct, useCategories } from '../hooks/useProducts';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Auction Card Component
 const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
@@ -133,7 +134,7 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
 };
 
 // Fixed Price Card Component
-const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId, isAuthenticated }) => {
+const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId, isAuthenticated, isCartActive }) => {
   // Only fetch seller data if user is authenticated
   const { data: seller } = useUser(isAuthenticated ? product.sellerId : null);
   const avgRating = product.ratings?.length > 0
@@ -218,15 +219,33 @@ const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId,
           View Details
         </Button>
         
-        <Button 
-          className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
-          size="sm"
-          onClick={(e) => handleAddToCart(product.productId, e)}
-          disabled={isOwnProduct || !isAuthenticated}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {isOwnProduct ? 'Your Product' : !isAuthenticated ? 'Login to Add' : 'Add to Cart'}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`w-full ${(isOwnProduct || !isAuthenticated || !isCartActive) ? "cursor-not-allowed" : ""}`}>
+                <Button 
+                  className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
+                  size="sm"
+                  onClick={(e) => handleAddToCart(product.productId, e)}
+                  disabled={isOwnProduct || !isAuthenticated || !isCartActive}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {isOwnProduct ? 'Your Product' : !isAuthenticated ? 'Login to Add' : !isCartActive ? 'Cart Unavailable' : 'Add to Cart'}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!isCartActive && isAuthenticated && !isOwnProduct && (
+              <TooltipContent>
+                <p>You have a pending checkout. Please finish or cancel it to re-enable cart.</p>
+              </TooltipContent>
+            )}
+            {isOwnProduct && (
+              <TooltipContent>
+                <p>You cannot add your own product to cart.</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </CardFooter>
     </Card>
   );
@@ -237,6 +256,7 @@ const ListingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { data: categoriesData } = useCategories();
+  const { data: isCartActive } = useIsCartActive();
   const categoryScrollRef = React.useRef(null);
   const [showLeftShadow, setShowLeftShadow] = React.useState(false);
   const [showRightShadow, setShowRightShadow] = React.useState(false);
@@ -530,6 +550,11 @@ const ListingsPage = () => {
 
   const handleAddToCart = async (productId, e) => {
     e.stopPropagation();
+    
+    if (!isCartActive) {
+      toast.error("Cart is currently unavailable during checkout");
+      return;
+    }
     
     try {
       await addToCart.mutateAsync({ productId });
@@ -1033,6 +1058,7 @@ const ListingsPage = () => {
                       handleAddToCart={handleAddToCart}
                       currentUserId={user?.userId}
                       isAuthenticated={!!user}
+                      isCartActive={isCartActive}
                     />
                   ))}
                 </div>

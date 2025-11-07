@@ -12,11 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useIsCartActive } from "../hooks/useCart";
 
 export const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { data: isCartActive, isLoading: isLoadingCartStatus } = useIsCartActive();
 
   const handleLogout = async () => {
     await logout();
@@ -66,15 +74,29 @@ export const Navbar = () => {
             <div className="flex items-center gap-2">
               {/* User-specific navigation buttons */}
               <div className="hidden sm:flex items-center gap-2">
-                <Button 
-                  variant={isActive('/cart') ? "default" : "ghost"} 
-                  size="sm" 
-                  className="hidden md:flex relative group hover:scale-105 transition-all duration-200" 
-                  onClick={() => navigateClean('/cart')}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  <span>Cart</span>
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={!isCartActive ? "cursor-not-allowed" : ""}>
+                        <Button 
+                          variant={isActive('/cart') ? "default" : "ghost"} 
+                          size="sm" 
+                          className="hidden md:flex relative group hover:scale-105 transition-all duration-200" 
+                          onClick={() => navigateClean('/cart')}
+                          disabled={!isCartActive}
+                        >
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          <span>Cart</span>
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {!isCartActive && (
+                      <TooltipContent>
+                        <p>You have a pending checkout. Please finish or cancel it to re-enable cart.</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
                 <Button 
                   variant={isActive('/my-listings') ? "default" : "ghost"} 
                   size="sm" 

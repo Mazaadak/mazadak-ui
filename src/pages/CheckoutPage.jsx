@@ -242,6 +242,15 @@ export const CheckoutPage = () => {
       setWorkflowFailed(true);
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
       console.log('Invalidated queries for orderId:', orderId);
+      // Re-enable cart after failure - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
     }
     // If workflow completed, refetch order to show success
     else if (checkoutStatus.status === 'COMPLETED') {
@@ -249,6 +258,15 @@ export const CheckoutPage = () => {
       setWorkflowFailed(false);
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
       console.log('Invalidated queries for orderId:', orderId);
+      // Re-enable cart after completion - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
     }
     else {
       console.log('Workflow status not terminal:', checkoutStatus.status);
@@ -307,6 +325,12 @@ export const CheckoutPage = () => {
       });
 
       console.log('Checkout started:', checkoutResponse);
+      
+      // Invalidate cart active status after checkout workflow starts
+      // Add a small delay to ensure backend has processed the cart deactivation
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+      }, 500);
       
       // Poll for the order to be created by the workflow
       let attempts = 0;
@@ -411,6 +435,15 @@ export const CheckoutPage = () => {
 
     try {
       await cancelCheckout.mutateAsync(orderId);
+      // Re-enable cart after cancellation - poll until active
+      const pollCartStatus = async () => {
+        for (let i = 0; i < 10; i++) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          await queryClient.invalidateQueries({ queryKey: queryKeys.cart.isActive });
+          await queryClient.refetchQueries({ queryKey: queryKeys.cart.isActive });
+        }
+      };
+      pollCartStatus();
       navigate('/cart');
     } catch (err) {
       console.error('Cancel checkout error:', err);
