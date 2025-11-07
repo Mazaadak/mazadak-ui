@@ -3,8 +3,9 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCartItems } from '../hooks/useCart';
 import { useAddresses } from '../hooks/useAddress';
-import { useCheckout, useOrder, useCheckoutStatus } from '../hooks/useOrders';
+import { useCheckout, useOrder, useCheckoutStatus, useCancelCheckout } from '../hooks/useOrders';
 import { useCreatePaymentIntent } from '../hooks/usePayments';
+import { useProduct } from '../hooks/useProducts';
 import { ordersAPI } from '../api/orders';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../hooks/queryKeys';
@@ -29,7 +30,44 @@ const formatStatus = (status) => {
   return status.charAt(0) + status.slice(1).toLowerCase();
 };
 
-const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError }) => {
+// Component to display order item with product image from product service
+const OrderItemDisplay = ({ item, isOrderItem }) => {
+  const { data: product } = useProduct(isOrderItem ? item.productId : null, {
+    enabled: isOrderItem
+  });
+  
+  const title = isOrderItem ? item.productName : item.title;
+  const image = isOrderItem ? product?.images?.[0]?.imageUri : item.primaryImage;
+  const quantity = isOrderItem ? item.quantity : item.quantity;
+  const price = isOrderItem ? Number(item.subtotal) : Number(item.price ?? 0);
+  const subtotal = isOrderItem ? price : (isNaN(price) ? 0 : price * quantity);
+  
+  return (
+    <div className="flex gap-3">
+      {image ? (
+        <div className="relative group">
+          <img 
+            src={image} 
+            alt={title} 
+            className="w-16 h-16 object-cover rounded-lg border shadow-sm transition-transform group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 rounded-lg transition-colors" />
+        </div>
+      ) : (
+        <div className="w-16 h-16 bg-muted rounded-lg border flex items-center justify-center">
+          <Package className="h-6 w-6 text-muted-foreground" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0 text-left">
+        <p className="text-sm font-medium truncate hover:text-primary transition-colors">{title}</p>
+        <p className="text-xs text-muted-foreground">Qty: {quantity}</p>
+        <p className="text-sm font-semibold text-primary">${subtotal.toFixed(2)}</p>
+      </div>
+    </div>
+  );
+};
+
+const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -64,21 +102,38 @@ const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
-      <Button 
-        type="submit" 
-        disabled={!stripe || isProcessing} 
-        className="w-full"
-        size="lg"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          'Authorize Payment'
-        )}
-      </Button>
+      <div className="space-y-3">
+        <Button 
+          type="submit" 
+          disabled={!stripe || isProcessing} 
+          className="w-full hover:scale-[1.02] transition-transform"
+          size="lg"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Authorize Payment
+            </>
+          )}
+        </Button>
+        
+        <Button 
+          type="button"
+          onClick={onCancel}
+          disabled={isProcessing}
+          variant="outline"
+          className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
+          size="lg"
+        >
+          <XCircle className="mr-2 h-4 w-4" />
+          Cancel Checkout
+        </Button>
+      </div>
     </form>
   );
 };
@@ -93,27 +148,45 @@ export const CheckoutPage = () => {
   const [clientSecret, setClientSecret] = useState(null);
   const [error, setError] = useState(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [workflowFailed, setWorkflowFailed] = useState(false); // Track workflow failure separately
 
   const { data: cartItems = [], isLoading: isLoadingCart } = useCartItems();
   const { data: addresses = [], isLoading: isLoadingAddresses, refetch: refetchAddresses } = useAddresses();
   const { data: order, isLoading: isLoadingOrder } = useOrder(orderId, { enabled: !!orderId });
   const checkout = useCheckout();
   const createPaymentIntent = useCreatePaymentIntent();
+  const cancelCheckout = useCancelCheckout();
   
-  // Poll for checkout status when processing
+  // Poll for checkout status continuously when we have an orderId
   const { data: checkoutStatus } = useCheckoutStatus(orderId, {
-    enabled: !!orderId && currentStep === 'processing',
+    enabled: !!orderId,
     refetchInterval: 2000 // Poll every 2 seconds
   });
 
   // Determine current step based on order state (for resuming checkout)
   useEffect(() => {
-    if (!orderId || !order) return;
+    console.log('========== STEP DETERMINATION EFFECT ==========');
+    console.log('orderId:', orderId);
+    console.log('order exists:', !!order);
+    
+    if (!orderId || !order) {
+      console.log('Skipping: no orderId or order');
+      return;
+    }
 
     console.log('Determining step for order:', order);
+    console.log('Order status:', order.status);
     console.log('Order has clientSecret:', !!order.clientSecret);
     console.log('Order paymentStatus:', order.paymentStatus);
     console.log('Order shippingAddress:', order.shippingAddress);
+
+    // If order is completed, confirmed, failed, or cancelled, don't override - let the main render logic handle it
+    if (['COMPLETED', 'CONFIRMED', 'FAILED', 'CANCELLED'].includes(order.status)) {
+      console.log('!!! ORDER IN TERMINAL STATE - SHOULD SHOW SUCCESS/FAILURE SCREEN !!!');
+      console.log('Terminal status:', order.status);
+      console.log('Current step before return:', currentStep);
+      return;
+    }
 
     // If payment is authorized, show processing
     if (order.paymentStatus === 'AUTHORIZED') {
@@ -144,16 +217,46 @@ export const CheckoutPage = () => {
       console.log('Defaulting to address step');
       setCurrentStep('address');
     }
+    console.log('========================================');
   }, [orderId, order, addresses]);
 
-  // Handle checkout status changes (when polling during processing)
+  // Handle checkout status changes - continuously monitor workflow status
   useEffect(() => {
-    if (!checkoutStatus || !orderId) return;
+    console.log('========== CHECKOUT STATUS EFFECT ==========');
+    console.log('checkoutStatus:', checkoutStatus);
+    console.log('orderId:', orderId);
+    console.log('currentStep:', currentStep);
+    
+    if (!checkoutStatus || !orderId) {
+      console.log('Skipping: no checkoutStatus or orderId');
+      return;
+    }
     
     console.log('Checkout status updated:', checkoutStatus);
+    console.log('checkoutStatus.status:', checkoutStatus.status);
     
-    // Refetch the order to get updated status
-    queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+    // If workflow failed, mark as failed immediately
+    if (checkoutStatus.status === 'FAILED') {
+      console.log('!!! WORKFLOW FAILED - SHOWING FAILURE IMMEDIATELY !!!');
+      setWorkflowFailed(true);
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+      console.log('Invalidated queries for orderId:', orderId);
+    }
+    // If workflow completed, refetch order to show success
+    else if (checkoutStatus.status === 'COMPLETED') {
+      console.log('!!! WORKFLOW COMPLETED - REFETCHING ORDER !!!');
+      setWorkflowFailed(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+      console.log('Invalidated queries for orderId:', orderId);
+    }
+    else {
+      console.log('Workflow status not terminal:', checkoutStatus.status);
+      // Reset workflowFailed if status is not FAILED
+      if (workflowFailed) {
+        setWorkflowFailed(false);
+      }
+    }
+    console.log('========================================');
   }, [checkoutStatus, orderId, queryClient]);
 
   const calculateTotal = () => {
@@ -237,12 +340,15 @@ export const CheckoutPage = () => {
             const paymentResponse = await createPaymentIntent.mutateAsync(paymentRequest);
             console.log('Payment intent created:', paymentResponse);
             
-            // Set clientSecret and go to payment step
-            setClientSecret(paymentResponse.clientSecret);
-            setCurrentStep('payment');
+            // Update the order in cache with the clientSecret
+            queryClient.setQueryData(queryKeys.orders.order(order.id), (oldData) => ({
+              ...oldData,
+              ...order,
+              clientSecret: paymentResponse.clientSecret
+            }));
             
-            // Update URL without navigation (for state persistence)
-            window.history.replaceState(null, '', `/checkout/${order.id}`);
+            // Navigate to the order-specific URL
+            navigate(`/checkout/${order.id}`, { replace: true });
           } else if (attempts < maxAttempts) {
             attempts++;
             setTimeout(pollForOrder, 1000);
@@ -277,12 +383,30 @@ export const CheckoutPage = () => {
     setError(errorMessage);
   };
 
+  const handleCancelCheckout = async () => {
+    if (!orderId) {
+      navigate('/cart');
+      return;
+    }
+
+    try {
+      await cancelCheckout.mutateAsync(orderId);
+      navigate('/cart');
+    } catch (err) {
+      console.error('Cancel checkout error:', err);
+      setError('Failed to cancel checkout. Please try again.');
+    }
+  };
+
   if (isLoadingCart || isLoadingAddresses || isLoadingOrder) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading checkout...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="animate-ping absolute inset-0 rounded-full h-12 w-12 border border-primary/50 mx-auto"></div>
+          </div>
+          <p className="text-muted-foreground animate-pulse">Loading checkout...</p>
         </div>
       </div>
     );
@@ -308,34 +432,42 @@ export const CheckoutPage = () => {
 
   // Show order completion status
   if (order && (order.status === 'COMPLETED' || order.status === 'CONFIRMED')) {
+    console.log('========== RENDERING SUCCESS SCREEN ==========');
+    console.log('Order status:', order.status);
+    console.log('Order ID:', order.id);
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6 max-w-md">
-          <CheckCircle2 className="h-24 w-24 text-green-500 mx-auto" />
+        <div className="text-center space-y-6 max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="relative">
+            <CheckCircle2 className="h-24 w-24 text-green-500 mx-auto animate-in zoom-in duration-300" />
+            <div className="absolute inset-0 animate-ping">
+              <CheckCircle2 className="h-24 w-24 text-green-500/30 mx-auto" />
+            </div>
+          </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Order Complete!</h2>
+            <h2 className="text-2xl font-bold text-green-600">Order Complete!</h2>
             <p className="text-muted-foreground">Your order has been successfully placed.</p>
           </div>
-          <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-2 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Order ID:</span>
-              <span className="font-mono">{order.id}</span>
+              <span className="font-mono font-semibold">{order.id}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant="default">{formatStatus(order.status)}</Badge>
+              <Badge variant="default" className="bg-green-500 hover:bg-green-600">{formatStatus(order.status)}</Badge>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Total:</span>
-              <span className="font-semibold">${Number(order.totalAmount || 0).toFixed(2)}</span>
+              <span className="font-semibold text-lg text-green-600">${Number(order.totalAmount || 0).toFixed(2)}</span>
             </div>
           </div>
           <div className="flex gap-3">
-            <Button asChild size="lg" variant="outline" className="flex-1">
+            <Button asChild size="lg" variant="outline" className="flex-1 hover:scale-105 transition-transform">
               <Link to="/">Continue Shopping</Link>
             </Button>
-            <Button asChild size="lg" className="flex-1">
-              <Link to="/orders">View Orders</Link>
+            <Button asChild size="lg" className="flex-1 hover:scale-105 transition-transform">
+              <Link to="/my-orders">View Orders</Link>
             </Button>
           </div>
         </div>
@@ -343,31 +475,40 @@ export const CheckoutPage = () => {
     );
   }
 
-  // Show order failure status
-  if (order && (order.status === 'FAILED' || order.status === 'CANCELLED')) {
+  // Show order failure status (either from order status OR workflow failure)
+  if ((order && (order.status === 'FAILED' || order.status === 'CANCELLED')) || workflowFailed) {
+    console.log('========== RENDERING FAILURE SCREEN ==========');
+    console.log('Order status:', order?.status);
+    console.log('Workflow failed:', workflowFailed);
+    console.log('Order ID:', order?.id);
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6 max-w-md">
-          <AlertCircle className="h-24 w-24 text-destructive mx-auto opacity-50" />
+        <div className="text-center space-y-6 max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="relative">
+            <AlertCircle className="h-24 w-24 text-destructive mx-auto opacity-80 animate-in zoom-in duration-300" />
+            <div className="absolute inset-0 animate-pulse">
+              <AlertCircle className="h-24 w-24 text-destructive/20 mx-auto" />
+            </div>
+          </div>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Order {formatStatus(order.status)}</h2>
+            <h2 className="text-2xl font-bold text-destructive">Order {formatStatus(order?.status || 'FAILED')}</h2>
             <p className="text-muted-foreground">
-              {order.status === 'FAILED' 
+              {(order?.status === 'FAILED' || workflowFailed)
                 ? 'There was an issue processing your order. Please try again.'
                 : 'This order has been cancelled.'}
             </p>
           </div>
-          <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
+          <div className="space-y-2 p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Order ID:</span>
-              <span className="font-mono">{order.id}</span>
+              <span className="font-mono font-semibold">{order?.id || orderId}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant="destructive">{formatStatus(order.status)}</Badge>
+              <Badge variant="destructive">{formatStatus(order?.status || 'FAILED')}</Badge>
             </div>
           </div>
-          <Button asChild size="lg" className="w-full">
+          <Button asChild size="lg" className="w-full hover:scale-105 transition-transform">
             <Link to="/cart">Back to Cart</Link>
           </Button>
         </div>
@@ -424,19 +565,22 @@ export const CheckoutPage = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Step 1: Address Selection */}
           {currentStep === 'address' && (
-            <Card>
+            <Card className="shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   Shipping Address
                 </CardTitle>
                 <CardDescription>Select where you want your items delivered</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 {addresses.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground mb-4">You haven't added any addresses yet</p>
-                    <Button onClick={() => setIsAddressModalOpen(true)}>
+                  <div className="text-center py-8 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+                      <MapPin className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground">You haven't added any addresses yet</p>
+                    <Button onClick={() => setIsAddressModalOpen(true)} size="lg">
                       Add Address
                     </Button>
                   </div>
@@ -447,16 +591,17 @@ export const CheckoutPage = () => {
                       console.log('RadioGroup onValueChange called with:', value);
                       setSelectedAddressId(value);
                     }}
+                    className="space-y-3"
                   >
                     {addresses.map((address) => (
                       <label 
                         key={address.addressId} 
                         htmlFor={`address-${address.addressId}`}
                         onClick={() => console.log('Label clicked for address:', address.addressId)}
-                        className={`flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                        className={`flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all hover:scale-[1.01] ${
                           selectedAddressId?.toString() === address.addressId?.toString()
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50 hover:bg-accent/50'
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'border-border hover:border-primary/50 hover:bg-accent/50 hover:shadow-sm'
                         }`}
                       >
                         <RadioGroupItem 
@@ -464,9 +609,9 @@ export const CheckoutPage = () => {
                           id={`address-${address.addressId}`}
                           className="mt-1"
                         />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-base">{address.street}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="font-semibold text-base hover:text-primary transition-colors">{address.street}</div>
+                          <div className="text-sm text-muted-foreground">
                             {address.city}, {address.state} {address.zipCode || ''}
                           </div>
                           {address.country && <div className="text-sm text-muted-foreground">{address.country}</div>}
@@ -476,42 +621,68 @@ export const CheckoutPage = () => {
                   </RadioGroup>
                 )}
 
-                <Button 
-                  onClick={handleProceedToPayment} 
-                  disabled={!selectedAddressId || checkout.isPending || createPaymentIntent.isPending}
-                  className="w-full"
-                  size="lg"
-                >
-                  {(checkout.isPending || createPaymentIntent.isPending) ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {checkout.isPending ? 'Starting Checkout...' : 'Creating Payment...'}
-                    </>
-                  ) : (
-                    'Proceed to Payment'
-                  )}
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={handleProceedToPayment} 
+                    disabled={!selectedAddressId || checkout.isPending || createPaymentIntent.isPending}
+                    className="w-full hover:scale-[1.02] transition-transform"
+                    size="lg"
+                  >
+                    {(checkout.isPending || createPaymentIntent.isPending) ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {checkout.isPending ? 'Starting Checkout...' : 'Creating Payment...'}
+                      </>
+                    ) : (
+                      <>
+                        Proceed to Payment
+                        <CreditCard className="ml-2 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleCancelCheckout}
+                    disabled={cancelCheckout.isPending}
+                    variant="outline"
+                    className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
+                    size="lg"
+                  >
+                    {cancelCheckout.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancel Checkout
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
 
           {/* Step 2: Payment */}
           {currentStep === 'payment' && clientSecret && (
-            <Card>
+            <Card className="shadow-md animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
+                  <CreditCard className="h-5 w-5 text-primary" />
                   Payment Information
                 </CardTitle>
-                <CardDescription>Enter your payment details</CardDescription>
+                <CardDescription>Enter your payment details securely</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Elements stripe={stripePromise} options={{ clientSecret }}>
                   <CheckoutForm 
                     clientSecret={clientSecret}
                     orderId={orderId}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
+                    onCancel={handleCancelCheckout}
                   />
                 </Elements>
               </CardContent>
@@ -520,10 +691,12 @@ export const CheckoutPage = () => {
 
           {/* Step 3: Processing */}
           {currentStep === 'processing' && (
-            <Card>
+            <Card className="shadow-md">
               <CardContent className="pt-6">
                 <div className="text-center space-y-4 py-8">
-                  <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+                  <div className="relative inline-block">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+                  </div>
                   <div>
                     <h3 className="font-semibold text-lg">Processing your order</h3>
                     <p className="text-sm text-muted-foreground mt-2">
@@ -531,7 +704,11 @@ export const CheckoutPage = () => {
                     </p>
                   </div>
                   {checkoutStatus && (
-                    <Badge variant="secondary">{checkoutStatus.status}</Badge>
+                    <>
+                      <Badge variant="secondary" className="animate-pulse">{checkoutStatus.status}</Badge>
+                      {console.log('Rendering processing step with status:', checkoutStatus.status)}
+                      {console.log('Order status:', order?.status)}
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -541,42 +718,22 @@ export const CheckoutPage = () => {
 
         {/* Order Summary */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-4">
+          <Card className="sticky top-4 shadow-md">
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Order Summary
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               {/* Items */}
               <div className="space-y-3">
                 {(order?.orderItems || cartItems).map((item) => {
-                  // Handle both order items and cart items
                   const isOrderItem = !!item.subtotal;
-                  const price = isOrderItem ? Number(item.subtotal) : Number(item.price ?? 0);
-                  const quantity = isOrderItem ? 1 : item.quantity;
-                  const subtotal = isOrderItem ? price : (isNaN(price) ? 0 : price * quantity);
-                  const title = isOrderItem ? item.productTitle : item.title;
-                  const image = isOrderItem ? item.productImage : item.primaryImage;
                   const itemId = isOrderItem ? item.id : item.productId;
-
+                  
                   return (
-                    <div key={itemId} className="flex gap-3">
-                      {image ? (
-                        <img 
-                          src={image} 
-                          alt={title} 
-                          className="w-16 h-16 object-cover rounded border"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-muted rounded border flex items-center justify-center">
-                          <Package className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0 text-left">
-                        <p className="text-sm font-medium truncate">{title}</p>
-                        {!isOrderItem && <p className="text-xs text-muted-foreground">Qty: {quantity}</p>}
-                        <p className="text-sm font-semibold">${subtotal.toFixed(2)}</p>
-                      </div>
-                    </div>
+                    <OrderItemDisplay key={itemId} item={item} isOrderItem={isOrderItem} />
                   );
                 })}
               </div>
@@ -595,7 +752,7 @@ export const CheckoutPage = () => {
 
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span>${(order?.totalAmount || calculateTotal()).toFixed(2)}</span>
+                <span className="text-primary">${(order?.totalAmount || calculateTotal()).toFixed(2)}</span>
               </div>
             </CardContent>
           </Card>

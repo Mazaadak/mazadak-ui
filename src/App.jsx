@@ -25,7 +25,6 @@ import { CheckoutPage } from "./pages/CheckoutPage.jsx";
 import { AuctionCheckoutPage } from "./pages/AuctionCheckoutPage.jsx";
 import { OrderSuccessPage } from "./pages/OrderSuccessPage.jsx";
 import { MyOrdersPage } from "./pages/MyOrdersPage.jsx";
-import { OrderDetailPage } from "./pages/OrderDetailPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,7 +78,6 @@ function App() {
                 <Route path="/auction-checkout/:orderId" element={<AuctionCheckoutPage />} />
                 <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
                 <Route path="/my-orders" element={<MyOrdersPage />} />
-                <Route path="/orders/:orderId" element={<OrderDetailPage />} />
                 <Route path="/fixed-price/:productId" element={<FixedPriceDetails />} />
                 <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>

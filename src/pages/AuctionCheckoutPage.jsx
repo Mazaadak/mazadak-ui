@@ -5,6 +5,7 @@ import { useOrder, useProvideAddress, useCheckoutStatus, useCancelCheckout } fro
 import { useAddresses } from '../hooks/useAddress';
 import { useCreatePaymentIntent } from '../hooks/usePayments';
 import { useAuction } from '../hooks/useAuctions';
+import { useProduct } from '../hooks/useProducts';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../hooks/queryKeys';
 import { Button } from '../components/ui/button';
@@ -30,7 +31,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError }) => {
+const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -65,22 +66,70 @@ const CheckoutForm = ({ clientSecret, orderId, onSuccess, onError }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
-      <Button 
-        type="submit" 
-        disabled={!stripe || isProcessing} 
-        className="w-full"
-        size="lg"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          'Authorize Payment'
-        )}
-      </Button>
+      <div className="space-y-3">
+        <Button 
+          type="submit" 
+          disabled={!stripe || isProcessing} 
+          className="w-full hover:scale-[1.02] transition-transform"
+          size="lg"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-4 w-4" />
+              Authorize Payment
+            </>
+          )}
+        </Button>
+        
+        <Button 
+          type="button"
+          onClick={onCancel}
+          disabled={isProcessing}
+          variant="outline"
+          className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
+          size="lg"
+        >
+          <XCircle className="mr-2 h-4 w-4" />
+          Cancel Checkout
+        </Button>
+      </div>
     </form>
+  );
+};
+
+// Order Item Display Component - fetches product image from product service
+const OrderItemDisplay = ({ item }) => {
+  const { data: product, isLoading: isProductLoading } = useProduct(item.productId);
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative h-16 w-16 rounded-lg overflow-hidden bg-gradient-to-br from-muted to-muted/50 flex-shrink-0 group">
+        {isProductLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            <img
+              src={product?.images?.[0]?.imageUri || '/placeholder.png'}
+              alt={item.productName}
+              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+          </>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate hover:text-primary transition-colors">{item.productName}</p>
+        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+      </div>
+      <p className="font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">${item.unitPrice.toFixed(2)}</p>
+    </div>
   );
 };
 
@@ -103,11 +152,31 @@ export const AuctionCheckoutPage = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
-  const { data: order, isLoading: isLoadingOrder } = useOrder(orderId);
+  const { data: order, isLoading: isLoadingOrder, refetch: refetchOrder } = useOrder(orderId);
   const { data: addresses = [], isLoading: isLoadingAddresses, refetch: refetchAddresses } = useAddresses();
   const { data: auction, isLoading: isLoadingAuction } = useAuction(order?.auctionId, {
     enabled: !!order?.auctionId
   });
+  
+  // Refetch order on page load
+  useEffect(() => {
+    if (orderId) {
+      console.log('REFETCHING ORDER ON PAGE LOAD');
+      refetchOrder();
+    }
+  }, [orderId]);
+  
+  // Debug logging
+  console.log('===== AUCTION CHECKOUT PAGE STATE =====');
+  console.log('orderId:', orderId);
+  console.log('user:', user);
+  console.log('order:', order);
+  console.log('isLoadingOrder:', isLoadingOrder);
+  console.log('currentStep:', currentStep);
+  console.log('clientSecret state:', clientSecret);
+  console.log('order.clientSecret:', order?.clientSecret);
+  console.log('=======================================');
+  
   const provideAddress = useProvideAddress();
   const createPaymentIntent = useCreatePaymentIntent();
   const cancelCheckout = useCancelCheckout();
@@ -124,8 +193,16 @@ export const AuctionCheckoutPage = () => {
     
     console.log('Checkout status updated:', checkoutStatus);
     
-    // Refetch the order to get updated status
-    queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+    // If workflow failed, refetch order to get FAILED status
+    if (checkoutStatus.status === 'FAILED') {
+      console.log('Workflow failed, refetching order');
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+    }
+    // If workflow completed, refetch order to get COMPLETED/CONFIRMED status
+    else if (checkoutStatus.status === 'COMPLETED') {
+      console.log('Workflow completed, refetching order');
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.order(orderId) });
+    }
   }, [checkoutStatus, orderId, queryClient]);
 
   // Determine current step based on order state (for resuming checkout)
@@ -133,9 +210,16 @@ export const AuctionCheckoutPage = () => {
     if (!order) return;
 
     console.log('Determining step for auction order:', order);
+    console.log('Order status:', order.status);
     console.log('Order has clientSecret:', !!order.clientSecret);
     console.log('Order paymentStatus:', order.paymentStatus);
     console.log('Order shippingAddress:', order.shippingAddress);
+
+    // If order is completed, confirmed, failed, or cancelled, don't override - let the main render logic handle it
+    if (['COMPLETED', 'CONFIRMED', 'FAILED', 'CANCELLED'].includes(order.status)) {
+      console.log('Order in terminal state:', order.status);
+      return;
+    }
 
     // If payment is authorized, show processing
     if (order.paymentStatus === 'AUTHORIZED') {
@@ -245,6 +329,12 @@ export const AuctionCheckoutPage = () => {
         items: items
       });
 
+      // Update the order in cache with the clientSecret
+      queryClient.setQueryData(queryKeys.orders.order(orderId), (oldData) => ({
+        ...oldData,
+        clientSecret: response.clientSecret
+      }));
+
       setClientSecret(response.clientSecret);
       setCurrentStep('payment');
     } catch (err) {
@@ -265,9 +355,9 @@ export const AuctionCheckoutPage = () => {
       await cancelCheckout.mutateAsync(orderId);
       navigate('/my-orders');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to cancel checkout');
+      console.error('Cancel checkout error:', err);
+      setError('Failed to cancel checkout. Please try again.');
     }
-    setCancelDialogOpen(false);
   };
 
   if (isLoadingOrder || isLoadingAddresses || isLoadingAuction) {
@@ -320,18 +410,39 @@ export const AuctionCheckoutPage = () => {
   if (order.status === 'COMPLETED' || order.status === 'CONFIRMED') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6 max-w-md">
-          <CheckCircle2 className="h-24 w-24 text-green-600 mx-auto" />
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">Order Completed</h2>
-            <p className="text-muted-foreground">Your order has been successfully completed</p>
-            <div className="pt-4">
-              <Badge variant="secondary" className="text-lg px-4 py-2">Order #{orderId}</Badge>
+        <div className="text-center space-y-6 max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="relative">
+            <CheckCircle2 className="h-24 w-24 text-green-500 mx-auto animate-in zoom-in duration-300" />
+            <div className="absolute inset-0 animate-ping">
+              <CheckCircle2 className="h-24 w-24 text-green-500/30 mx-auto" />
             </div>
           </div>
-          <Button asChild size="lg">
-            <Link to="/">Go Home</Link>
-          </Button>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">Order Complete!</h2>
+            <p className="text-muted-foreground">Your order has been successfully placed.</p>
+          </div>
+          <div className="space-y-2 p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Order ID:</span>
+              <span className="font-mono font-semibold">{order.id}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Status:</span>
+              <Badge variant="default" className="bg-green-500 hover:bg-green-600">{formatStatus(order.status)}</Badge>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total:</span>
+              <span className="font-semibold text-lg bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">${Number(order.totalAmount || 0).toFixed(2)}</span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button asChild size="lg" variant="outline" className="flex-1 hover:scale-105 transition-transform">
+              <Link to="/">Continue Shopping</Link>
+            </Button>
+            <Button asChild size="lg" className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:scale-105 transition-transform">
+              <Link to="/my-orders">View Orders</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -340,23 +451,33 @@ export const AuctionCheckoutPage = () => {
   if (order.status === 'FAILED' || order.status === 'CANCELLED') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-6 max-w-md">
-          <XCircle className="h-24 w-24 text-destructive mx-auto" />
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold">
-              {order.status === 'FAILED' ? 'Order Failed' : 'Order Cancelled'}
-            </h2>
-            <p className="text-muted-foreground">
-              {order.status === 'FAILED' 
-                ? 'Your order could not be completed. Please try again.' 
-                : 'This order has been cancelled.'}
-            </p>
-            <div className="pt-4">
-              <Badge variant="destructive" className="text-lg px-4 py-2">Order #{orderId}</Badge>
+        <div className="text-center space-y-6 max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="relative">
+            <AlertCircle className="h-24 w-24 text-destructive mx-auto opacity-80 animate-in zoom-in duration-300" />
+            <div className="absolute inset-0 animate-pulse">
+              <AlertCircle className="h-24 w-24 text-destructive/20 mx-auto" />
             </div>
           </div>
-          <Button asChild size="lg">
-            <Link to="/">Go Home</Link>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-destructive to-red-600 bg-clip-text text-transparent">Order {formatStatus(order.status)}</h2>
+            <p className="text-muted-foreground">
+              {order.status === 'FAILED' 
+                ? 'There was an issue processing your order. Please try again.'
+                : 'This order has been cancelled.'}
+            </p>
+          </div>
+          <div className="space-y-2 p-4 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Order ID:</span>
+              <span className="font-mono font-semibold">{order.id}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Status:</span>
+              <Badge variant="destructive" className="animate-pulse">{formatStatus(order.status)}</Badge>
+            </div>
+          </div>
+          <Button asChild size="lg" className="w-full hover:scale-105 transition-transform">
+            <Link to="/cart">Back to Cart</Link>
           </Button>
         </div>
       </div>
@@ -451,11 +572,11 @@ export const AuctionCheckoutPage = () => {
                   </RadioGroup>
                 )}
 
-                <div className="flex gap-3">
+                <div className="space-y-3">
                   <Button 
                     onClick={handleProvideAddress} 
                     disabled={!selectedAddressId || !auction || isLoadingAuction || provideAddress.isPending || createPaymentIntent.isPending}
-                    className="flex-1"
+                    className="w-full hover:scale-[1.02] transition-transform"
                     size="lg"
                   >
                     {(provideAddress.isPending || createPaymentIntent.isPending) ? (
@@ -464,15 +585,31 @@ export const AuctionCheckoutPage = () => {
                         Processing...
                       </>
                     ) : (
-                      'Proceed to Payment'
+                      <>
+                        Proceed to Payment
+                        <CreditCard className="ml-2 h-4 w-4" />
+                      </>
                     )}
                   </Button>
-                  <Button
+                  
+                  <Button 
+                    onClick={handleCancelCheckout}
+                    disabled={cancelCheckout.isPending}
                     variant="outline"
-                    onClick={() => setCancelDialogOpen(true)}
-                    disabled={provideAddress.isPending || createPaymentIntent.isPending}
+                    className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive transition-colors"
+                    size="lg"
                   >
-                    Cancel
+                    {cancelCheckout.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Cancel Checkout
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -496,6 +633,7 @@ export const AuctionCheckoutPage = () => {
                     orderId={orderId}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
+                    onCancel={handleCancelCheckout}
                   />
                 </Elements>
               </CardContent>
@@ -533,24 +671,7 @@ export const AuctionCheckoutPage = () => {
               {/* Items */}
               <div className="space-y-3">
                 {order.orderItems?.map((item) => (
-                  <div key={item.id} className="flex gap-3">
-                    {item.productImageUrl ? (
-                      <img 
-                        src={item.productImageUrl} 
-                        alt={item.productName} 
-                        className="w-16 h-16 object-cover rounded border"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-muted rounded border flex items-center justify-center">
-                        <Package className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-medium truncate">{item.productName}</p>
-                      <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
-                      <p className="text-sm font-semibold">${Number(item.unitPrice).toFixed(2)}</p>
-                    </div>
-                  </div>
+                  <OrderItemDisplay key={item.id} item={item} />
                 ))}
               </div>
 
