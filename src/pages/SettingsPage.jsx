@@ -154,7 +154,7 @@ export const SettingsPage = () => {
         <div className="space-y-6">
           
           {/* Personal Information - Enhanced */}
-          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden text-left">
             <CardHeader className="pb-4 border-b bg-gradient-to-r from-muted/30 to-transparent">
               <CardTitle className="text-xl font-bold flex items-center gap-3">
                 <div className="p-2.5 bg-primary/10 rounded-lg shadow-sm">
@@ -234,16 +234,10 @@ export const SettingsPage = () => {
                     <p className="text-sm font-medium text-muted-foreground mb-0.5">Email Address</p>
                     <p className="text-base font-semibold truncate transition-colors">{user?.email || 'Not set'}</p>
                   </div>
+                  <div className="ml-2 px-3 py-1.5 bg-muted/60 rounded-full border border-border">
+                    <p className="text-xs font-medium text-muted-foreground">Read only</p>
+                  </div>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsEmailDialogOpen(true)}
-                  className="ml-2 hover:bg-primary/10 hover:text-primary transition-all"
-                >
-                  <span className="hidden sm:inline mr-2">Edit</span>
-                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
               </div>
 
               {/* Birth Date */}
@@ -298,7 +292,7 @@ export const SettingsPage = () => {
           </Card>
 
           {/* Addresses - Enhanced */}
-          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden text-left">
             <CardHeader className="pb-4 border-b bg-gradient-to-r from-muted/30 to-transparent">
               <CardTitle className="text-xl font-bold flex items-center gap-3">
                 <div className="p-2.5 bg-primary/10 rounded-lg shadow-sm">
@@ -331,7 +325,7 @@ export const SettingsPage = () => {
           </Card>
 
           {/* Stripe Account Connection - Enhanced */}
-          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
+          <Card className="border shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden text-left">
             <CardHeader className="pb-4 border-b bg-gradient-to-r from-muted/30 to-transparent">
               <CardTitle className="text-xl font-bold flex items-center gap-3">
                 <div className="p-2.5 bg-primary/10 rounded-lg shadow-sm">
