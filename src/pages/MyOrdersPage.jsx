@@ -242,7 +242,7 @@ export const MyOrdersPage = () => {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-muted-foreground text-left">
                             {new Date(order.createdAt).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
