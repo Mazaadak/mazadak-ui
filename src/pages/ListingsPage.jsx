@@ -399,7 +399,9 @@ const ListingsPage = () => {
 
   // Build auction query params
   const auctionQueryParams = useMemo(() => {
-    const filters = {};
+    const filters = {
+      excludeStatuses: ['CANCELLED', 'INVALID', 'COMPLETED']
+    };
     
     if (searchQuery && activeTab === 'auctions') {
       filters.title = searchQuery;

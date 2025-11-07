@@ -59,6 +59,7 @@ import { useEffect } from 'react';
 import { EditAuctionSheet } from '../components/EditAuctionSheet';
 import { EditFixedPriceSheet } from '../components/EditFixedPriceSheet';
 import { EditProductSheet } from '../components/EditProductSheet';
+import { formatAuctionStatus } from '../lib/auctionUtils';
 
 
 export const MyListingsPage = () => {
@@ -161,6 +162,16 @@ export const MyListingsPage = () => {
 
   const cancelledAuctions = useMemo(() => 
     allAuctions.filter(a => a.status === 'CANCELLED'),
+    [allAuctions]
+  );
+
+  const invalidAuctions = useMemo(() => 
+    allAuctions.filter(a => a.status === 'INVALID'),
+    [allAuctions]
+  );
+
+  const completedAuctions = useMemo(() => 
+    allAuctions.filter(a => a.status === 'COMPLETED'),
     [allAuctions]
   );
 
@@ -543,6 +554,34 @@ export const MyListingsPage = () => {
                   />
                 )}
 
+                {/* Invalid Auctions */}
+                {invalidAuctions.length > 0 && (
+                  <AuctionSection
+                    title="Invalid"
+                    auctions={invalidAuctions}
+                    onDelete={handleDeleteClick}
+                    onPause={handlePauseAuction}
+                    onResume={handleResumeAuction}
+                    onCancel={handleCancelAuction}
+                    onRelist={handleRelistAuction}
+                    onEdit={handleEditAuction}
+                  />
+                )}
+
+                {/* Completed Auctions */}
+                {completedAuctions.length > 0 && (
+                  <AuctionSection
+                    title="Completed"
+                    auctions={completedAuctions}
+                    onDelete={handleDeleteClick}
+                    onPause={handlePauseAuction}
+                    onResume={handleResumeAuction}
+                    onCancel={handleCancelAuction}
+                    onRelist={handleRelistAuction}
+                    onEdit={handleEditAuction}
+                  />
+                )}
+
                 {/* Ended Auctions */}
                 {endedAuctions.length > 0 && (
                   <AuctionSection
@@ -676,6 +715,8 @@ const AuctionSection = ({ title, auctions, onDelete, onPause, onResume, onCancel
       case 'Upcoming': return <Clock className="h-5 w-5 text-blue-600" />;
       case 'Paused': return <PauseCircle className="h-5 w-5 text-yellow-600" />;
       case 'Cancelled': return <XCircle className="h-5 w-5 text-red-600" />;
+      case 'Invalid': return <AlertCircle className="h-5 w-5 text-orange-600" />;
+      case 'Completed': return <Sparkles className="h-5 w-5 text-green-600" />;
       case 'Ended': return <TrendingUp className="h-5 w-5 text-purple-600" />;
       default: return null;
     }
@@ -872,7 +913,9 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
       ACTIVE: 'default',
       PAUSED: 'outline',
       ENDED: 'destructive',
-      CANCELLED: 'destructive'
+      CANCELLED: 'destructive',
+      INVALID: 'destructive',
+      COMPLETED: 'default'
     };
     return variants[status] || 'secondary';
   };
@@ -884,7 +927,9 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
       ACTIVE: <PlayCircle className="h-3 w-3 mr-1" />,
       PAUSED: <PauseCircle className="h-3 w-3 mr-1" />,
       ENDED: <TrendingUp className="h-3 w-3 mr-1" />,
-      CANCELLED: <XCircle className="h-3 w-3 mr-1" />
+      CANCELLED: <XCircle className="h-3 w-3 mr-1" />,
+      INVALID: <AlertCircle className="h-3 w-3 mr-1" />,
+      COMPLETED: <Sparkles className="h-3 w-3 mr-1" />
     };
     return icons[status] || null;
   };
@@ -893,7 +938,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
   const isPaused = auction.status === 'PAUSED';
   const isScheduled = auction.status === 'SCHEDULED';
   const isEnded = auction.status === 'ENDED';
-  const isCancelled = auction.status === 'CANCELLED';
+  const isCancelledOrInvalidOrCompleted = ['CANCELLED', 'INVALID', 'COMPLETED'].includes(auction.status);
   const { data: productData } = useProduct(auction.productId);
 
   return (
@@ -905,7 +950,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
         <div className="absolute top-3 left-3 z-10">
           <Badge variant={getStatusVariant(auction.status)} className="text-xs font-semibold shadow-lg">
             {getStatusIcon(auction.status)}
-            {auction.status}
+            {formatAuctionStatus(auction.status)}
           </Badge>
         </div>
         {isActive && (
@@ -1017,8 +1062,8 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             </Tooltip>
           )}
           
-          {/* Edit button disabled for active/ended/cancelled auctions */}
-          {(isActive || isEnded || isCancelled) && (
+          {/* Edit button disabled for ended/cancelled/invalid/completed auctions */}
+          {(isEnded || isCancelledOrInvalidOrCompleted) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>
@@ -1033,25 +1078,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Cannot edit {isActive ? 'active' : isEnded ? 'ended' : 'cancelled'} auctions</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-          
-          {isActive && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  className="h-8 text-xs" 
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onPause(auction.id)}
-                >
-                  <PauseCircle className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Pause auction</p>
+                <p>Cannot edit {isEnded ? 'ended' : 'cancelled/invalid/completed'} auctions</p>
               </TooltipContent>
             </Tooltip>
           )}
@@ -1074,7 +1101,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             </Tooltip>
           )}
           
-          {!isEnded && !isCancelled && (
+          {!isEnded && !isCancelledOrInvalidOrCompleted && !isActive && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
@@ -1092,7 +1119,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             </Tooltip>
           )}
           
-          {(isEnded || isCancelled) && (
+          {(isEnded || isCancelledOrInvalidOrCompleted) && (
             <>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1112,7 +1139,7 @@ const AuctionCard = ({ auction, onDelete, onPause, onResume, onCancel, onRelist,
             </>
           )}
           
-          {(isScheduled || isCancelled) && (
+          {(isScheduled || isCancelledOrInvalidOrCompleted) && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button 
