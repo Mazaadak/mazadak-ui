@@ -13,9 +13,10 @@ import { UpdatePhotoDialog } from '../components/UpdatePhotoDialog';
 import { UpdatePasswordDialog } from '../components/UpdatePasswordDialog';
 import { DeleteAccountDialog } from '../components/DeleteAccountDialog';
 import { AddressManagementModal } from '../components/AddressManagementModal';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useStripeAccount, useGetStripeOAuthUrl } from '../hooks/usePayments';
+import { toast } from 'sonner';
 
 export const SettingsPage = () => {
   const { user } = useAuth();
@@ -33,11 +34,29 @@ export const SettingsPage = () => {
   const { data: stripeAccount, isLoading: isLoadingStripe, refetch: refetchStripeAccount } = useStripeAccount(user?.userId);
   const getStripeOAuthUrl = useGetStripeOAuthUrl();
 
+  // Handle Stripe OAuth callback on return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const accountId = params.get('accountId');
+    
+    if (success === 'true') {
+      toast.success('Stripe account connected successfully!');
+      refetchStripeAccount();
+      // Clean up URL
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [refetchStripeAccount]);
+
   // Handle Stripe onboarding redirect
   const handleStripeOnboarding = async () => {
     try {
       setIsRedirectingToStripe(true);
-      const response = await getStripeOAuthUrl.mutateAsync(user?.userId);
+      const redirectUrl = `${window.location.origin}/settings`;
+      const response = await getStripeOAuthUrl.mutateAsync({ 
+        sellerId: user?.userId, 
+        redirectUrl 
+      });
       console.log('Stripe OAuth response:', response);
       const oauthUrl = response?.onboardingUrl || response?.url || response?.data?.onboardingUrl || response?.data?.url;
       if (oauthUrl && typeof oauthUrl === 'string') {

@@ -30,6 +30,7 @@ import { useCreateListing, useListingStatus, useProduct } from "../hooks/useProd
 import { v4 as uuidv4 } from "uuid";
 import { productAPI } from "../api/products";
 import { useStripeAccount, useGetStripeOAuthUrl } from "../hooks/usePayments";
+import { toast } from 'sonner';
 
 export const CreateItemPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -72,12 +73,29 @@ export const CreateItemPage = () => {
   const idempotencyKeyRef = useRef(null);
   
   // Check if user has connected Stripe account
-  const { data: stripeAccount, isLoading: isLoadingStripe, error: stripeError } = useStripeAccount(userId);
+  const { data: stripeAccount, isLoading: isLoadingStripe, error: stripeError, refetch: refetchStripeAccount } = useStripeAccount(userId);
   const getStripeOAuthUrl = useGetStripeOAuthUrl();
   const [isRedirectingToStripe, setIsRedirectingToStripe] = useState(false);
   
   // Fetch product details if productId is set
   const { data: selectedProduct, isLoading: isLoadingProduct } = useProduct(productId);
+  
+  // Handle Stripe OAuth callback on return
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const accountId = params.get('accountId');
+    
+    if (success === 'true') {
+      toast.success('Stripe account connected successfully! You can now create listings.');
+      refetchStripeAccount();
+      // Clean up URL but preserve other params
+      params.delete('success');
+      params.delete('accountId');
+      const newSearch = params.toString();
+      window.history.replaceState({}, '', `/create-item${newSearch ? '?' + newSearch : ''}`);
+    }
+  }, [refetchStripeAccount]);
   
   // Debug logging
   useEffect(() => {
@@ -90,7 +108,14 @@ export const CreateItemPage = () => {
   const handleStripeOnboarding = async () => {
     try {
       setIsRedirectingToStripe(true);
-      const response = await getStripeOAuthUrl.mutateAsync(userId);
+      // Build current URL with params to return to same state
+      const currentParams = new URLSearchParams(window.location.search);
+      const redirectUrl = `${window.location.origin}/create-item${currentParams.toString() ? '?' + currentParams.toString() : ''}`;
+      
+      const response = await getStripeOAuthUrl.mutateAsync({ 
+        sellerId: userId, 
+        redirectUrl 
+      });
       console.log('Stripe OAuth response:', response);
       const oauthUrl = response?.onboardingUrl || response?.url || response?.data?.onboardingUrl || response?.data?.url;
       if (oauthUrl && typeof oauthUrl === 'string') {
