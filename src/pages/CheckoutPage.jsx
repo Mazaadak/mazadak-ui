@@ -20,6 +20,7 @@ import { ArrowLeft, Package, MapPin, CreditCard, Loader2, CheckCircle2, XCircle,
 import { AddressManagementModal } from '../components/AddressManagementModal';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { toast } from 'sonner';
 
 // Initialize Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -327,7 +328,7 @@ export const CheckoutPage = () => {
             // Create payment intent for this order
             const items = order.orderItems?.map(item => ({
               sellerId: item.sellerId || order.sellerId,
-              amount: Math.round(Number(item.subtotal) * 100)
+              amount: Math.round(Number(item.subtotal))
             })) || [];
             
             const paymentRequest = {
@@ -337,23 +338,36 @@ export const CheckoutPage = () => {
               items: items
             };
             
-            const paymentResponse = await createPaymentIntent.mutateAsync(paymentRequest);
-            console.log('Payment intent created:', paymentResponse);
-            
-            // Update the order in cache with the clientSecret
-            queryClient.setQueryData(queryKeys.orders.order(order.id), (oldData) => ({
-              ...oldData,
-              ...order,
-              clientSecret: paymentResponse.clientSecret
-            }));
-            
-            // Navigate to the order-specific URL
-            navigate(`/checkout/${order.id}`, { replace: true });
+            try {
+              const paymentResponse = await createPaymentIntent.mutateAsync(paymentRequest);
+              console.log('Payment intent created:', paymentResponse);
+              
+              // Update the order in cache with the clientSecret
+              queryClient.setQueryData(queryKeys.orders.order(order.id), (oldData) => ({
+                ...oldData,
+                ...order,
+                clientSecret: paymentResponse.clientSecret
+              }));
+              
+              // Navigate to the order-specific URL
+              navigate(`/checkout/${order.id}`, { replace: true });
+            } catch (paymentError) {
+              console.error('Payment intent creation failed:', paymentError);
+              const errorMessage = paymentError.response?.data?.detail || 
+                                   paymentError.response?.data?.message || 
+                                   'Failed to create payment intent. Please try again.';
+              toast.error(errorMessage);
+              setError(errorMessage);
+              // Stop polling on payment intent error
+              return;
+            }
           } else if (attempts < maxAttempts) {
             attempts++;
             setTimeout(pollForOrder, 1000);
           } else {
-            setError('Failed to create order. Please try again.');
+            const errorMessage = 'Failed to create order. Please try again.';
+            toast.error(errorMessage);
+            setError(errorMessage);
           }
         } catch (err) {
           console.error('Error polling for order:', err);
@@ -361,7 +375,9 @@ export const CheckoutPage = () => {
             attempts++;
             setTimeout(pollForOrder, 1000);
           } else {
-            setError('Failed to create order. Please try again.');
+            const errorMessage = 'Failed to create order. Please try again.';
+            toast.error(errorMessage);
+            setError(errorMessage);
           }
         }
       };
@@ -370,7 +386,11 @@ export const CheckoutPage = () => {
 
     } catch (err) {
       console.error('Checkout error:', err);
-      setError(err.response?.data?.message || 'Failed to start checkout');
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          'Failed to start checkout';
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
 
