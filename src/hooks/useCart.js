@@ -69,3 +69,14 @@ export const useClearCart = () => {
     },
   });
 };
+
+// Check if cart is active hook
+export const useIsCartActive = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: queryKeys.cart.isActive,
+    queryFn: () => cartAPI.isCartActive(),
+    enabled: !!user?.token,
+  });
+};

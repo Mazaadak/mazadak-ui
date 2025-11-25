@@ -175,13 +175,24 @@ export const generateIdempotencyKey = () => {
 export const getAuctionStatusVariant = (status) => {
   const variants = {
     'ACTIVE': 'default',
+    'STARTED': 'default',
     'SCHEDULED': 'secondary',
     'ENDED': 'outline',
     'CANCELLED': 'destructive',
-    'PAUSED': 'secondary'
+    'PAUSED': 'secondary',
+    'INVALID': 'destructive',
+    'COMPLETED': 'default'
   };
   
   return variants[status] || 'outline';
+};
+
+/**
+ * Format auction status to capitalize first letter
+ */
+export const formatAuctionStatus = (status) => {
+  if (!status) return '';
+  return status.charAt(0) + status.slice(1).toLowerCase();
 };
 
 /**

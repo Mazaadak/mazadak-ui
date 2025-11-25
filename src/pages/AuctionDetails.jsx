@@ -42,7 +42,8 @@ import {
   isAuctionActive, 
   formatCurrency, 
   formatEgyptTime,
-  getAuctionStatusVariant 
+  getAuctionStatusVariant,
+  formatAuctionStatus
 } from '../lib/auctionUtils';
 import { useState } from 'react';
 
@@ -225,7 +226,7 @@ const AuctionDetails = () => {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Badge variant={getAuctionStatusVariant(auction.status)}>
-                {auction.status}
+                {formatAuctionStatus(auction.status)}
               </Badge>
               <AuctionCountdown 
                 endTime={auction.endTime} 

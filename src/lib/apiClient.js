@@ -8,6 +8,20 @@ const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  paramsSerializer: {
+    serialize: (params) => {
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          // For arrays, add each value as a separate parameter
+          value.forEach(item => searchParams.append(key, item));
+        } else if (value !== null && value !== undefined && value !== '') {
+          searchParams.append(key, value);
+        }
+      });
+      return searchParams.toString();
+    }
+  }
 });
 
 // Store access token in sessionStorage to survive page reloads

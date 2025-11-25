@@ -24,8 +24,8 @@ export const paymentsAPI = {
 
 export const onboardingAPI = {
   // Generate Stripe OAuth URL
-  getOAuthUrl: (sellerId) => {
-    return apiClient.post('/api/onboarding/oauth/url', { sellerId });
+  getOAuthUrl: (sellerId, redirectUrl) => {
+    return apiClient.post('/api/onboarding/oauth/url', { sellerId, redirectUrl });
   },
 
   // Get connected account ID

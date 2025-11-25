@@ -13,16 +13,18 @@ import { Label } from '@/components/ui/label';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProducts } from '@/hooks/useProducts';
 import { useAuctions } from '@/hooks/useAuctions';
-import { useAddToCart } from '../hooks/useCart';
+import { useAddToCart, useIsCartActive } from '../hooks/useCart';
 import { useUser } from '../hooks/useUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { useBids } from '../hooks/useAuctions';
 import { BidHistory } from '../components/auction/BidHistory';
 import { useProduct, useCategories } from '../hooks/useProducts';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AuctionCountdown } from '../components/auction/AuctionCountdown';
 
 // Auction Card Component
-const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, isAuthenticated }) => {
+const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining, getStatusIcon, formatStatus, isAuthenticated }) => {
   // Only fetch seller data if user is authenticated
   const { data: seller } = useUser(isAuthenticated ? auction.sellerId : null);
   const { data: bidData } = useBids(auction.id, { size: 1000 }); // Fetch all bids to get count
@@ -40,17 +42,18 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
         <div className="absolute top-3 left-3 z-10">
           <Badge variant={getStatusVariant(auction.status)} className="text-xs font-semibold shadow-lg">
             {getStatusIcon(auction.status)}
-            {auction.status}
+            {formatStatus(auction.status)}
           </Badge>
         </div>
         
         {/* Time Remaining */}
-        {auction.status === 'ACTIVE' && (
+        {(auction.status === 'ACTIVE' || auction.status === 'STARTED') && (
           <div className="absolute top-3 right-3 z-10">
-            <Badge variant="secondary" className="bg-black/80 text-white hover:bg-black text-xs font-semibold shadow-lg backdrop-blur-sm">
-              <Clock className="h-3 w-3 mr-1" />
-              {getTimeRemaining(auction.endTime)}
-            </Badge>
+            <AuctionCountdown 
+              endTime={auction.endTime}
+              status={auction.status}
+              className="bg-black/80 text-white hover:bg-black backdrop-blur-sm"
+            />
           </div>
         )}
         
@@ -133,7 +136,7 @@ const AuctionCardItem = ({ auction, navigate, getStatusVariant, getTimeRemaining
 };
 
 // Fixed Price Card Component
-const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId, isAuthenticated }) => {
+const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId, isAuthenticated, isCartActive }) => {
   // Only fetch seller data if user is authenticated
   const { data: seller } = useUser(isAuthenticated ? product.sellerId : null);
   const avgRating = product.ratings?.length > 0
@@ -218,15 +221,33 @@ const FixedPriceCardItem = ({ product, navigate, handleAddToCart, currentUserId,
           View Details
         </Button>
         
-        <Button 
-          className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
-          size="sm"
-          onClick={(e) => handleAddToCart(product.productId, e)}
-          disabled={isOwnProduct || !isAuthenticated}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {isOwnProduct ? 'Your Product' : !isAuthenticated ? 'Login to Add' : 'Add to Cart'}
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className={`w-full ${(isOwnProduct || !isAuthenticated || !isCartActive) ? "cursor-not-allowed" : ""}`}>
+                <Button 
+                  className="w-full h-9 font-semibold group-hover:shadow-md transition-shadow" 
+                  size="sm"
+                  onClick={(e) => handleAddToCart(product.productId, e)}
+                  disabled={isOwnProduct || !isAuthenticated || !isCartActive}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {isOwnProduct ? 'Your Product' : !isAuthenticated ? 'Login to Add' : !isCartActive ? 'Cart Unavailable' : 'Add to Cart'}
+                </Button>
+              </div>
+            </TooltipTrigger>
+            {!isCartActive && isAuthenticated && !isOwnProduct && (
+              <TooltipContent>
+                <p>You have a pending checkout. Please finish or cancel it to re-enable cart.</p>
+              </TooltipContent>
+            )}
+            {isOwnProduct && (
+              <TooltipContent>
+                <p>You cannot add your own product to cart.</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </CardFooter>
     </Card>
   );
@@ -237,6 +258,7 @@ const ListingsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { data: categoriesData } = useCategories();
+  const { data: isCartActive } = useIsCartActive();
   const categoryScrollRef = React.useRef(null);
   const [showLeftShadow, setShowLeftShadow] = React.useState(false);
   const [showRightShadow, setShowRightShadow] = React.useState(false);
@@ -377,7 +399,9 @@ const ListingsPage = () => {
 
   // Build auction query params
   const auctionQueryParams = useMemo(() => {
-    const filters = {};
+    const filters = {
+      excludeStatuses: ['CANCELLED', 'INVALID', 'COMPLETED']
+    };
     
     if (searchQuery && activeTab === 'auctions') {
       filters.title = searchQuery;
@@ -510,6 +534,11 @@ const ListingsPage = () => {
     };
     return icons[status] || null;
   };
+
+  const formatStatus = (status) => {
+    if (!status) return '';
+    return status.charAt(0) + status.slice(1).toLowerCase();
+  };
   
   const clearFilters = () => {
     // Clear all filter-related params
@@ -530,6 +559,11 @@ const ListingsPage = () => {
 
   const handleAddToCart = async (productId, e) => {
     e.stopPropagation();
+    
+    if (!isCartActive) {
+      toast.error("Cart is currently unavailable during checkout");
+      return;
+    }
     
     try {
       await addToCart.mutateAsync({ productId });
@@ -983,6 +1017,7 @@ const ListingsPage = () => {
                       getStatusVariant={getStatusVariant}
                       getTimeRemaining={getTimeRemaining}
                       getStatusIcon={getStatusIcon}
+                      formatStatus={formatStatus}
                       isAuthenticated={!!user}
                     />
                   ))}
@@ -1033,6 +1068,7 @@ const ListingsPage = () => {
                       handleAddToCart={handleAddToCart}
                       currentUserId={user?.userId}
                       isAuthenticated={!!user}
+                      isCartActive={isCartActive}
                     />
                   ))}
                 </div>

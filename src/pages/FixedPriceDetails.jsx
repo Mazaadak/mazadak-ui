@@ -1,6 +1,6 @@
 import { useProduct, useDeleteProduct, useProductRatings } from "../hooks/useProducts";
 import { useInventoryItem, useDeleteInventoryItem } from "../hooks/useInventory";
-import { useAddToCart } from "../hooks/useCart";
+import { useAddToCart, useIsCartActive } from "../hooks/useCart";
 import { useUser } from "../hooks/useUsers";
 import { useAuth } from "../contexts/AuthContext";
 import { useParams, useNavigate } from "react-router-dom";
@@ -52,6 +52,7 @@ const FixedPriceDetails = () => {
   const { data: seller } = useUser(user ? product?.sellerId : null);
   const { data: inventoryItem } = useInventoryItem(productId);
   const { data: ratingsData, isLoading: ratingsLoading } = useProductRatings(productId, ratingsPage, 10);
+  const { data: isCartActive } = useIsCartActive();
   const isOwner = product?.sellerId === user?.userId;
   
   const stock = inventoryItem ? inventoryItem.totalQuantity - inventoryItem.reservedQuantity : 0;
@@ -114,14 +115,21 @@ const FixedPriceDetails = () => {
   }
 
   const handleAddToCart = () => {
+    if (!isCartActive) {
+      toast.error("Cart is currently unavailable during checkout");
+      return;
+    }
+    
     addToCart.mutate(
       { productId: product.productId, quantity },
       {
         onSuccess: () => {
           console.log('Added to cart successfully!');
+          toast.success("Product added to cart!");
         },
         onError: (err) => {
           console.error('Failed to add to cart:', err);
+          toast.error("Failed to add to cart");
         }
       }
     );
@@ -404,21 +412,36 @@ const FixedPriceDetails = () => {
                   ${(Number(product.price) * quantity).toFixed(2)}
                 </span>
               </div>
-              <Button
-                onClick={handleAddToCart}
-                disabled={addToCart.isPending || !stock || stock === 0 || product.sellerId === user?.userId}
-                className="w-full"
-                size="lg"
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                {product.sellerId === user?.userId
-                  ? 'Your Product'
-                  : addToCart.isPending
-                  ? 'Adding to Cart...'
-                  : stock === 0
-                  ? 'Out of Stock'
-                  : 'Add to Cart'}
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={!isCartActive && product.sellerId !== user?.userId && stock > 0 ? "cursor-not-allowed w-full" : "w-full"}>
+                      <Button
+                        onClick={handleAddToCart}
+                        disabled={addToCart.isPending || !stock || stock === 0 || product.sellerId === user?.userId || !isCartActive}
+                        className="w-full"
+                        size="lg"
+                      >
+                        <ShoppingCart className="mr-2 h-5 w-5" />
+                        {product.sellerId === user?.userId
+                          ? 'Your Product'
+                          : addToCart.isPending
+                          ? 'Adding to Cart...'
+                          : stock === 0
+                          ? 'Out of Stock'
+                          : !isCartActive
+                          ? 'Cart Unavailable'
+                          : 'Add to Cart'}
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!isCartActive && product.sellerId !== user?.userId && stock > 0 && (
+                    <TooltipContent>
+                      <p>You have a pending checkout. Please finish or cancel it to re-enable cart.</p>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
               {addToCart.isSuccess && (
                 <p className="text-sm text-green-600 text-center mt-2 flex items-center justify-center gap-1">
                   <Check className="h-4 w-4" />

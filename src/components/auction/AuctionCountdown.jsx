@@ -7,7 +7,7 @@ export const AuctionCountdown = ({ endTime, status, className = '' }) => {
   const [timeRemaining, setTimeRemaining] = useState(getTimeRemaining(endTime));
 
   useEffect(() => {
-    if (status !== 'ACTIVE') return;
+    if (status !== 'ACTIVE' && status !== 'STARTED') return;
 
     const timer = setInterval(() => {
       const remaining = getTimeRemaining(endTime);

@@ -34,7 +34,7 @@ export const useRefundPayment = () => {
 // Get Stripe OAuth URL
 export const useGetStripeOAuthUrl = () => {
   return useMutation({
-    mutationFn: (sellerId) => onboardingAPI.getOAuthUrl(sellerId),
+    mutationFn: ({ sellerId, redirectUrl }) => onboardingAPI.getOAuthUrl(sellerId, redirectUrl),
   });
 };
 

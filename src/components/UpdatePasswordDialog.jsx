@@ -26,10 +26,7 @@ import { Loader2, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
 const passwordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
   newPassword: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+    .min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
@@ -138,7 +135,7 @@ export const UpdatePasswordDialog = ({ open, onOpenChange }) => {
             <p className="text-muted-foreground">Your password has been updated successfully.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 py-4" autoComplete="off">
             {/* Error Message */}
             {errorMessage && (
               <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -158,6 +155,7 @@ export const UpdatePasswordDialog = ({ open, onOpenChange }) => {
                   placeholder="Enter your current password"
                   className="text-base pr-10"
                   autoFocus
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -183,6 +181,7 @@ export const UpdatePasswordDialog = ({ open, onOpenChange }) => {
                   disabled={isSubmitting}
                   placeholder="Enter your new password"
                   className="text-base pr-10"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -211,6 +210,7 @@ export const UpdatePasswordDialog = ({ open, onOpenChange }) => {
                   disabled={isSubmitting}
                   placeholder="Confirm your new password"
                   className="text-base pr-10"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
