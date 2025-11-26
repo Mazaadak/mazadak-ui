@@ -35,8 +35,17 @@ import {
   Play,
   XCircle,
   Trash2,
-  Pencil
+  Pencil,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { 
   canUserBid, 
   isAuctionActive, 
@@ -52,6 +61,7 @@ const AuctionDetails = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
@@ -159,48 +169,63 @@ const AuctionDetails = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Left Column - Product Images */}
         <div className="space-y-4">
-          <Card className="overflow-hidden">
-            <div className="aspect-square relative bg-muted">
-              {displayImage ? (
-                <img 
-                  src={displayImage}
-                  alt={auction.title}
-                  className="object-cover w-full h-full"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <Package className="h-24 w-24 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          </Card>
+          {/* Image Gallery - Amazon Style */}
+          <div className="flex gap-4">
+            {/* Vertical Thumbnails */}
+            {hasImages && product.images.length > 1 && (
+              <div className="flex flex-col gap-2 w-16">
+                {product.images.map((image, idx) => (
+                  <button
+                    key={image.imageId}
+                    onClick={() => setSelectedImage(idx)}
+                    onMouseEnter={() => setSelectedImage(idx)}
+                    className={`aspect-square relative bg-muted rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      selectedImage === idx
+                        ? 'border-primary shadow-md'
+                        : 'border-muted-foreground/20 hover:border-primary/50'
+                    }`}
+                  >
+                    <img 
+                      src={image.imageUri}
+                      alt={`${auction.title} view ${idx + 1}`}
+                      className="object-cover w-full h-full"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {/* Thumbnail Grid */}
-          {hasImages && product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((image, idx) => (
-                <button
-                  key={image.imageId}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`aspect-square relative bg-muted rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === idx
-                      ? 'border-primary'
-                      : 'border-transparent hover:border-muted-foreground/50'
-                  }`}
-                >
-                  <img 
-                    src={image.imageUri}
-                    alt={`${auction.title} view ${idx + 1}`}
-                    className="object-cover w-full h-full"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+            {/* Main Image */}
+            <Card className="flex-1 overflow-hidden group">
+              <div 
+                className="aspect-square relative bg-muted cursor-pointer" 
+                onClick={() => setImageLightboxOpen(true)}
+              >
+                {displayImage ? (
+                  <>
+                    <img 
+                      src={displayImage}
+                      alt={auction.title}
+                      className="object-cover w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-xs text-muted-foreground bg-white/90 px-3 py-1 rounded-full">
+                        Click to enlarge
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <Package className="h-24 w-24 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
 
           {/* Product Description */}
           {product && (
-            <Card>
+            <Card className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardHeader>
                 <CardTitle>Product Details</CardTitle>
               </CardHeader>
@@ -273,7 +298,7 @@ const AuctionDetails = () => {
           <Separator />
 
           {/* Current Bid Info */}
-          <Card className="bg-primary/5 border-primary/20">
+          <Card className="bg-primary/5 border-primary/20 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center">
@@ -322,15 +347,18 @@ const AuctionDetails = () => {
 
           {/* User's Last Bid Status */}
           {isAuthenticated && userLastBid && !isOwner && (
-            <Card className={isUserWinning ? "border-green-500 bg-green-500/5" : "border-yellow-500 bg-yellow-500/5"}>
+            <Card className={`animate-in fade-in slide-in-from-bottom-4 duration-500 ${isUserWinning ? "border-green-500 bg-green-500/5" : "border-yellow-500 bg-yellow-500/5"}`}>
               <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-full ${isUserWinning ? 'bg-green-500' : 'bg-yellow-500'}`}>
-                    <Gavel className="h-5 w-5 text-white" />
+                  <div className={`relative p-2 rounded-full ${isUserWinning ? 'bg-green-500' : 'bg-yellow-500'}`}>
+                    {isUserWinning && (
+                      <div className="absolute inset-0 bg-green-500/30 rounded-full animate-ping"></div>
+                    )}
+                    <Gavel className="h-5 w-5 text-white relative z-10" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-1">
-                      {isUserWinning ? '🎉 You are winning!' : 'Your Last Bid'}
+                      {isUserWinning ? 'You are winning!' : 'Your Last Bid'}
                     </h3>
                     <p className="text-2xl font-bold mb-2">
                       {formatCurrency(userLastBid.amount)}
@@ -348,7 +376,7 @@ const AuctionDetails = () => {
 
           {/* Bidding Section */}
           {!isAuthenticated && auctionActive && (
-            <Card className="border-primary">
+            <Card className="border-primary animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardContent className="pt-6 text-center space-y-4">
                 <Info className="h-12 w-12 text-primary mx-auto" />
                 <div>
@@ -365,107 +393,133 @@ const AuctionDetails = () => {
           )}
 
           {isAuthenticated && isOwner && (
-            <Card className="border-blue-500/50 bg-blue-500/5">
+            <Card className="border-blue-500/50 bg-blue-500/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <CardContent className="pt-6">
-                <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-medium text-center mb-2">Auction Management</h3>
-                  
-                  {/* Edit button - Only for SCHEDULED status */}
-                  {auction.status === 'SCHEDULED' && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setEditSheetOpen(true)}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit Auction
-                    </Button>
-                  )}
-                  
-                  {/* Pause button - Only for STARTED status */}
-                  {auction.status === 'STARTED' && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => pauseAuction.mutate(auctionId, {
-                        onSuccess: () => {
-                          // Auction data will auto-refresh from polling
-                        }
-                      })}
-                      disabled={pauseAuction.isPending}
-                    >
-                      <Pause className="h-4 w-4 mr-2" />
-                      {pauseAuction.isPending ? 'Pausing...' : 'Pause Auction'}
-                    </Button>
-                  )}
-                  
-                  {/* Resume button - Only for PAUSED status */}
-                  {auction.status === 'PAUSED' && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => resumeAuction.mutate(auctionId, {
-                        onSuccess: () => {
-                          // Auction data will auto-refresh from polling
-                        }
-                      })}
-                      disabled={resumeAuction.isPending}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      {resumeAuction.isPending ? 'Resuming...' : 'Resume Auction'}
-                    </Button>
-                  )}
-                  
-                  {/* Cancel button - Only for SCHEDULED or STARTED status */}
-                  {(auction.status === 'SCHEDULED' || auction.status === 'STARTED') && (
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={() => setCancelDialogOpen(true)}
-                      disabled={cancelAuction.isPending}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      {cancelAuction.isPending ? 'Cancelling...' : 'Cancel Auction'}
-                    </Button>
-                  )}
-                  
-                  {/* Show informational message for statuses with no actions */}
-                  {auction.status === 'ACTIVE' && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Auction is active with bids. No management actions available.
-                    </p>
-                  )}
-                  {auction.status === 'ENDED' && (
-                    <p className="text-sm text-muted-foreground text-center">
-                      Auction has ended. No management actions available.
-                    </p>
-                  )}
-                  {auction.status === 'CANCELLED' && (
-                    <Button
-                      variant="destructive"
-                      className="w-full"
-                      onClick={() => setDeleteDialogOpen(true)}
-                      disabled={deleteAuction.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      {deleteAuction.isPending ? 'Deleting...' : 'Delete Auction'}
-                    </Button>
-                  )}
-                  
-                  {/* Error messages */}
-                  {(pauseAuction.isError || resumeAuction.isError || cancelAuction.isError || deleteAuction.isError) && (
-                    <div className="flex items-center gap-2 text-sm text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>
-                        {pauseAuction.error?.message || 
-                         resumeAuction.error?.message || 
-                         cancelAuction.error?.message || 
-                         deleteAuction.error?.message ||
-                         'An error occurred'}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <p className="text-sm font-semibold mb-4 text-center">Manage Your Auction</p>
+                <TooltipProvider>
+                  <div className="flex flex-col gap-2">
+                    {/* Edit button - Only for SCHEDULED status */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setEditSheetOpen(true)}
+                            disabled={auction.status !== 'SCHEDULED'}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit Auction
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{auction.status === 'SCHEDULED' ? 'Modify auction details before it starts' : 'Can only edit scheduled auctions'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Pause button - Only for STARTED status */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => pauseAuction.mutate(auctionId)}
+                            disabled={auction.status !== 'STARTED' || pauseAuction.isPending}
+                          >
+                            <Pause className="h-4 w-4 mr-2" />
+                            {pauseAuction.isPending ? 'Pausing...' : 'Pause Auction'}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{auction.status === 'STARTED' ? 'Temporarily pause the auction' : 'Can only pause active auctions'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Resume button - Only for PAUSED status */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => resumeAuction.mutate(auctionId)}
+                            disabled={auction.status !== 'PAUSED' || resumeAuction.isPending}
+                          >
+                            <Play className="h-4 w-4 mr-2" />
+                            {resumeAuction.isPending ? 'Resuming...' : 'Resume Auction'}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{auction.status === 'PAUSED' ? 'Resume the paused auction' : 'Can only resume paused auctions'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Cancel button - Only for SCHEDULED or STARTED status */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            variant="destructive"
+                            className="w-full"
+                            onClick={() => setCancelDialogOpen(true)}
+                            disabled={!(auction.status === 'SCHEDULED' || auction.status === 'STARTED') || cancelAuction.isPending}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            {cancelAuction.isPending ? 'Cancelling...' : 'Cancel Auction'}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{(auction.status === 'SCHEDULED' || auction.status === 'STARTED') ? 'Cancel this auction permanently' : 'Can only cancel scheduled or active auctions'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Delete button - Only for CANCELLED status */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Button
+                            variant="destructive"
+                            className="w-full"
+                            onClick={() => setDeleteDialogOpen(true)}
+                            disabled={auction.status !== 'CANCELLED' || deleteAuction.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {deleteAuction.isPending ? 'Deleting...' : 'Delete Auction'}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{auction.status === 'CANCELLED' ? 'Permanently delete this cancelled auction' : 'Can only delete cancelled auctions'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    {/* Status message */}
+                    {auction.status === 'ENDED' && (
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        This auction has ended. No management actions available.
+                      </p>
+                    )}
+                    
+                    {/* Error messages */}
+                    {(pauseAuction.isError || resumeAuction.isError || cancelAuction.isError || deleteAuction.isError) && (
+                      <div className="flex items-center gap-2 text-sm text-destructive mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>
+                          {pauseAuction.error?.message || 
+                           resumeAuction.error?.message || 
+                           cancelAuction.error?.message || 
+                           deleteAuction.error?.message ||
+                           'An error occurred'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </TooltipProvider>
               </CardContent>
             </Card>
           )}
@@ -476,10 +530,16 @@ const AuctionDetails = () => {
                 <TabsTrigger value="manual">Manual Bid</TabsTrigger>
                 <TabsTrigger value="proxy">Auto Bid</TabsTrigger>
               </TabsList>
-              <TabsContent value="manual">
+              <TabsContent 
+                value="manual" 
+                className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+              >
                 <BidForm auction={auction} userId={user.userId} />
               </TabsContent>
-              <TabsContent value="proxy">
+              <TabsContent 
+                value="proxy" 
+                className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+              >
                 <ProxyBidForm auction={auction} userId={user.userId} />
               </TabsContent>
             </Tabs>
@@ -575,6 +635,57 @@ const AuctionDetails = () => {
           auction={auction}
         />
       )}
+
+      {/* Image Lightbox */}
+      <Dialog open={imageLightboxOpen} onOpenChange={setImageLightboxOpen}>
+        <DialogContent className="max-w-5xl w-full p-0">
+          <div className="relative bg-black">
+            <button
+              onClick={() => setImageLightboxOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            {/* Previous Image Button */}
+            {hasImages && product.images.length > 1 && (
+              <button
+                onClick={() => setSelectedImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+            
+            {/* Next Image Button */}
+            {hasImages && product.images.length > 1 && (
+              <button
+                onClick={() => setSelectedImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+            
+            {displayImage && (
+              <div className="flex items-center justify-center min-h-[70vh] max-h-[90vh] p-8">
+                <img 
+                  src={displayImage}
+                  alt={auction?.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            )}
+            
+            {/* Image Counter */}
+            {hasImages && product.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                {selectedImage + 1} / {product.images.length}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

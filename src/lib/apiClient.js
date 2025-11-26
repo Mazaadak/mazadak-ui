@@ -63,11 +63,40 @@ apiClient.interceptors.response.use(
     }
     return response.data;
   },
-  async (error) => {    
+  async (error) => {
+    // Handle network errors (no response)
+    if (!error.response) {
+      const networkError = {
+        type: 'NETWORK_ERROR',
+        message: 'Network connection failed',
+        originalError: error
+      };
+      console.error('Network error:', error);
+      return Promise.reject(networkError);
+    }
+
     const originalRequest = error.config;
+    const status = error.response.status;
+
+    // Extract ProblemDetail from response
+    const problemDetail = error.response.data;
+
+    // Enhance error object with ProblemDetail info
+    const enhancedError = {
+      status,
+      title: problemDetail?.title || 'Error',
+      detail: problemDetail?.detail || error.message,
+      type: problemDetail?.type,
+      instance: problemDetail?.instance,
+      timestamp: problemDetail?.timestamp,
+      path: problemDetail?.path,
+      errors: problemDetail?.errors, // For validation errors
+      originalError: error,
+      response: error.response
+    };
 
     // if 401 and we haven't tried refreshing yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -87,12 +116,14 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // refresh failed - user needs to login again
         clearAccessToken();
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = "/login";
+        }
+        return Promise.reject(enhancedError);
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(enhancedError);
   }
 );
 

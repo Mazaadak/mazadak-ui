@@ -6,10 +6,13 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { AlertCircle, Gavel, Check } from 'lucide-react';
 import { calculateMinimumBid, validateBidAmount, generateIdempotencyKey, formatCurrency } from '../../lib/auctionUtils';
+import { getErrorMessage, getValidationErrors, isValidationError } from '../../lib/errorUtils';
 
 export const BidForm = ({ auction, userId, onSuccess }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   
   const placeBid = usePlaceBid();
   const minBid = calculateMinimumBid(auction);
@@ -17,6 +20,7 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     // Validate bid amount
     const validation = validateBidAmount(bidAmount, auction);
@@ -39,12 +43,21 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
       {
         onSuccess: () => {
           setBidAmount('');
+          setShowSuccessAnimation(true);
+          setTimeout(() => setShowSuccessAnimation(false), 3000);
           onSuccess?.();
         },
         onError: (err) => {
-          // Handle ProblemDetails error
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to place bid';
-          setError(errorMessage);
+          // Handle validation errors (field-specific)
+          if (isValidationError(err)) {
+            const validationErrors = getValidationErrors(err);
+            setFieldErrors(validationErrors);
+            setError('Please correct the errors below.');
+          } else {
+            // Handle other errors (general message)
+            const errorMessage = getErrorMessage(err);
+            setError(errorMessage);
+          }
         },
       }
     );
@@ -77,10 +90,17 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
                   onChange={(e) => {
                     setBidAmount(e.target.value);
                     setError('');
+                    setFieldErrors({});
                   }}
                   disabled={placeBid.isPending}
-                  className="text-lg"
+                  className={`text-lg ${fieldErrors.amount ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {fieldErrors.amount && (
+                  <p className="text-sm text-destructive mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {fieldErrors.amount}
+                  </p>
+                )}
               </div>
               <Button
                 type="button"
@@ -100,10 +120,17 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
             </div>
           )}
 
-          {placeBid.isSuccess && !error && (
-            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md">
-              <Check className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">Bid placed successfully!</p>
+          {showSuccessAnimation && (
+            <div className="flex items-center justify-center p-6 bg-green-500/10 text-green-600 rounded-md animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping"></div>
+                  <div className="relative bg-green-500 rounded-full p-3">
+                    <Check className="h-8 w-8 text-white animate-in zoom-in duration-300" />
+                  </div>
+                </div>
+                <p className="font-semibold">Bid Placed Successfully!</p>
+              </div>
             </div>
           )}
 

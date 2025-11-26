@@ -190,7 +190,12 @@ export const useDeleteProxyBid = () => {
     mutationFn: ({ auctionId, bidderId }) => 
       auctionAPI.deleteProxyBid(auctionId, bidderId),
     onSuccess: (data, variables) => {
-      // Invalidate proxy bid
+      // Clear cached proxy bid data immediately
+      queryClient.setQueryData(
+        queryKeys.auctions.proxyBid(variables.auctionId, variables.bidderId),
+        null
+      );
+      // Then invalidate to trigger cleanup
       queryClient.invalidateQueries(
         queryKeys.auctions.proxyBid(variables.auctionId, variables.bidderId)
       );

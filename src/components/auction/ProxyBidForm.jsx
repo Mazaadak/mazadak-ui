@@ -6,10 +6,14 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { AlertCircle, TrendingUp, Check, Trash2 } from 'lucide-react';
 import { calculateMinimumBid, formatCurrency } from '../../lib/auctionUtils';
+import { getErrorMessage, getValidationErrors, isValidationError } from '../../lib/errorUtils';
 
 export const ProxyBidForm = ({ auction, userId }) => {
   const [maxAmount, setMaxAmount] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const createOrUpdateProxyBid = useCreateOrUpdateProxyBid();
   const deleteProxyBid = useDeleteProxyBid();
@@ -26,6 +30,7 @@ export const ProxyBidForm = ({ auction, userId }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     const numMaxAmount = Number(maxAmount);
 
@@ -52,10 +57,22 @@ export const ProxyBidForm = ({ auction, userId }) => {
       {
         onSuccess: () => {
           setError('');
+          const message = existingProxyBid ? 'Proxy bid updated!' : 'Proxy bid set successfully!';
+          setSuccessMessage(message);
+          setShowSuccessAnimation(true);
+          setTimeout(() => setShowSuccessAnimation(false), 3000);
         },
         onError: (err) => {
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to set proxy bid';
-          setError(errorMessage);
+          // Handle validation errors (field-specific)
+          if (isValidationError(err)) {
+            const validationErrors = getValidationErrors(err);
+            setFieldErrors(validationErrors);
+            setError('Please correct the errors below.');
+          } else {
+            // Handle other errors (general message)
+            const errorMessage = getErrorMessage(err);
+            setError(errorMessage);
+          }
         },
       }
     );
@@ -71,9 +88,12 @@ export const ProxyBidForm = ({ auction, userId }) => {
         onSuccess: () => {
           setMaxAmount('');
           setError('');
+          setFieldErrors({});
+          setShowSuccessAnimation(false);
+          setSuccessMessage('');
         },
         onError: (err) => {
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to delete proxy bid';
+          const errorMessage = getErrorMessage(err);
           setError(errorMessage);
         },
       }
@@ -104,9 +124,17 @@ export const ProxyBidForm = ({ auction, userId }) => {
               onChange={(e) => {
                 setMaxAmount(e.target.value);
                 setError('');
+                setFieldErrors({});
               }}
               disabled={createOrUpdateProxyBid.isPending || deleteProxyBid.isPending || isLoadingProxyBid}
+              className={fieldErrors.maxAmount ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
+            {fieldErrors.maxAmount && (
+              <p className="text-sm text-destructive mt-1.5 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {fieldErrors.maxAmount}
+              </p>
+            )}
           </div>
 
           {existingProxyBid && (
@@ -128,12 +156,10 @@ export const ProxyBidForm = ({ auction, userId }) => {
             </div>
           )}
 
-          {createOrUpdateProxyBid.isSuccess && !error && (
-            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md">
+          {showSuccessAnimation && (
+            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md animate-in fade-in slide-in-from-bottom-4">
               <Check className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">
-                {existingProxyBid ? 'Proxy bid updated!' : 'Proxy bid set successfully!'}
-              </p>
+              <p className="text-sm">{successMessage}</p>
             </div>
           )}
 
