@@ -134,7 +134,8 @@ export const calculateMinimumBid = (auction) => {
     return Number(currentBid) + Number(auction.bidIncrement);
   }
   
-  return Number(auction.startingPrice);
+  // For first bid, minimum is starting price + increment
+  return Number(auction.startingPrice) + Number(auction.bidIncrement);
 };
 
 /**

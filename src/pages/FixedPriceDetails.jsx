@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Separator } from "../components/ui/separator";
 import { Badge } from "../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare, User, Pencil, Trash2, ListX } from "lucide-react";
+import { ShoppingCart, Star, Package, ArrowLeft, Check, AlertCircle, MessageSquare, User, Pencil, Trash2, ListX, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { RatingForm } from "../components/RatingForm";
 import { RatingList } from "../components/RatingList";
@@ -35,6 +35,7 @@ const FixedPriceDetails = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [imageLightboxOpen, setImageLightboxOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [ratingsPage, setRatingsPage] = useState(0);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
@@ -202,46 +203,60 @@ const FixedPriceDetails = () => {
       </Button>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        {/* Image Gallery */}
+        {/* Image Gallery - Amazon Style */}
         <div className="space-y-4">
-          <Card className="overflow-hidden">
-            <div className="aspect-square relative bg-muted">
-              {displayImage ? (
-                <img 
-                  src={displayImage}
-                  alt={product.title}
-                  className="object-cover w-full h-full"
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <Package className="h-24 w-24 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          </Card>
+          <div className="flex gap-4">
+            {/* Vertical Thumbnails */}
+            {hasImages && product.images.length > 1 && (
+              <div className="flex flex-col gap-2 w-16">
+                {product.images.map((image, idx) => (
+                  <button
+                    key={image.imageId}
+                    onClick={() => setSelectedImage(idx)}
+                    onMouseEnter={() => setSelectedImage(idx)}
+                    className={`aspect-square relative bg-muted rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      selectedImage === idx
+                        ? 'border-primary shadow-md'
+                        : 'border-muted-foreground/20 hover:border-primary/50'
+                    }`}
+                  >
+                    <img 
+                      src={image.imageUri}
+                      alt={`${product.title} view ${idx + 1}`}
+                      className="object-cover w-full h-full"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
-          {/* Thumbnail Grid */}
-          {hasImages && product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
-              {product.images.map((image, idx) => (
-                <button
-                  key={image.imageId}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`aspect-square relative bg-muted rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === idx
-                      ? 'border-primary'
-                      : 'border-transparent hover:border-muted-foreground/50'
-                  }`}
-                >
-                  <img 
-                    src={image.imageUri}
-                    alt={`${product.title} view ${idx + 1}`}
-                    className="object-cover w-full h-full"
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+            {/* Main Image */}
+            <Card className="flex-1 overflow-hidden group">
+              <div 
+                className="aspect-square relative bg-muted cursor-pointer" 
+                onClick={() => setImageLightboxOpen(true)}
+              >
+                {displayImage ? (
+                  <>
+                    <img 
+                      src={displayImage}
+                      alt={product.title}
+                      className="object-cover w-full h-full"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-xs text-muted-foreground bg-white/90 px-3 py-1 rounded-full">
+                        Click to enlarge
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <Package className="h-24 w-24 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
         </div>
 
         {/* Product Info */}
@@ -619,6 +634,57 @@ const FixedPriceDetails = () => {
               {deleteProduct.isPending ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Lightbox */}
+      <Dialog open={imageLightboxOpen} onOpenChange={setImageLightboxOpen}>
+        <DialogContent className="max-w-5xl w-full p-0">
+          <div className="relative bg-black">
+            <button
+              onClick={() => setImageLightboxOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            
+            {/* Previous Image Button */}
+            {hasImages && product.images.length > 1 && (
+              <button
+                onClick={() => setSelectedImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+            
+            {/* Next Image Button */}
+            {hasImages && product.images.length > 1 && (
+              <button
+                onClick={() => setSelectedImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white text-black rounded-full p-2 transition-colors"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+            
+            {displayImage && (
+              <div className="flex items-center justify-center min-h-[70vh] max-h-[90vh] p-8">
+                <img 
+                  src={displayImage}
+                  alt={product?.title}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            )}
+            
+            {/* Image Counter */}
+            {hasImages && product.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-sm">
+                {selectedImage + 1} / {product.images.length}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

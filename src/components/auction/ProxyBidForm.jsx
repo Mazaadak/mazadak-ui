@@ -6,12 +6,14 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { AlertCircle, TrendingUp, Check, Trash2 } from 'lucide-react';
 import { calculateMinimumBid, formatCurrency } from '../../lib/auctionUtils';
-import { getErrorMessage, getValidationErrors, isValidationError, showSuccessToast } from '../../lib/errorUtils';
+import { getErrorMessage, getValidationErrors, isValidationError } from '../../lib/errorUtils';
 
 export const ProxyBidForm = ({ auction, userId }) => {
   const [maxAmount, setMaxAmount] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const createOrUpdateProxyBid = useCreateOrUpdateProxyBid();
   const deleteProxyBid = useDeleteProxyBid();
@@ -55,10 +57,10 @@ export const ProxyBidForm = ({ auction, userId }) => {
       {
         onSuccess: () => {
           setError('');
-          showSuccessToast(
-            existingProxyBid ? 'Proxy Bid Updated' : 'Proxy Bid Set',
-            existingProxyBid ? 'Your maximum bid has been updated.' : 'Your automatic bidding is now active.'
-          );
+          const message = existingProxyBid ? 'Proxy bid updated!' : 'Proxy bid set successfully!';
+          setSuccessMessage(message);
+          setShowSuccessAnimation(true);
+          setTimeout(() => setShowSuccessAnimation(false), 3000);
         },
         onError: (err) => {
           // Handle validation errors (field-specific)
@@ -87,7 +89,8 @@ export const ProxyBidForm = ({ auction, userId }) => {
           setMaxAmount('');
           setError('');
           setFieldErrors({});
-          showSuccessToast('Proxy Bid Removed', 'Your automatic bidding has been cancelled.');
+          setShowSuccessAnimation(false);
+          setSuccessMessage('');
         },
         onError: (err) => {
           const errorMessage = getErrorMessage(err);
@@ -153,12 +156,10 @@ export const ProxyBidForm = ({ auction, userId }) => {
             </div>
           )}
 
-          {createOrUpdateProxyBid.isSuccess && !error && (
-            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md">
+          {showSuccessAnimation && (
+            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md animate-in fade-in slide-in-from-bottom-4">
               <Check className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">
-                {existingProxyBid ? 'Proxy bid updated!' : 'Proxy bid set successfully!'}
-              </p>
+              <p className="text-sm">{successMessage}</p>
             </div>
           )}
 

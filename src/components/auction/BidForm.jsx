@@ -6,12 +6,13 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { AlertCircle, Gavel, Check } from 'lucide-react';
 import { calculateMinimumBid, validateBidAmount, generateIdempotencyKey, formatCurrency } from '../../lib/auctionUtils';
-import { getErrorMessage, getValidationErrors, isValidationError, showSuccessToast } from '../../lib/errorUtils';
+import { getErrorMessage, getValidationErrors, isValidationError } from '../../lib/errorUtils';
 
 export const BidForm = ({ auction, userId, onSuccess }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
   
   const placeBid = usePlaceBid();
   const minBid = calculateMinimumBid(auction);
@@ -42,7 +43,8 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
       {
         onSuccess: () => {
           setBidAmount('');
-          showSuccessToast('Bid Placed', 'Your bid has been placed successfully!');
+          setShowSuccessAnimation(true);
+          setTimeout(() => setShowSuccessAnimation(false), 3000);
           onSuccess?.();
         },
         onError: (err) => {
@@ -118,10 +120,17 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
             </div>
           )}
 
-          {placeBid.isSuccess && !error && (
-            <div className="flex items-start gap-2 p-3 bg-green-500/10 text-green-600 rounded-md">
-              <Check className="h-4 w-4 mt-0.5 shrink-0" />
-              <p className="text-sm">Bid placed successfully!</p>
+          {showSuccessAnimation && (
+            <div className="flex items-center justify-center p-6 bg-green-500/10 text-green-600 rounded-md animate-in fade-in slide-in-from-bottom-4">
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-green-500/20 rounded-full animate-ping"></div>
+                  <div className="relative bg-green-500 rounded-full p-3">
+                    <Check className="h-8 w-8 text-white animate-in zoom-in duration-300" />
+                  </div>
+                </div>
+                <p className="font-semibold">Bid Placed Successfully!</p>
+              </div>
             </div>
           )}
 
