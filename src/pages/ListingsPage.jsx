@@ -703,6 +703,7 @@ const ListingsPage = () => {
                 <SelectItem value="4">Up to 4 Stars</SelectItem>
                 <SelectItem value="3">Up to 3 Stars</SelectItem>
                 <SelectItem value="2">Up to 2 Stars</SelectItem>
+                <SelectItem value="1">Up to 1 Star</SelectItem>
               </SelectContent>
             </Select>
           </div>
