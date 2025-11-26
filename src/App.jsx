@@ -25,12 +25,25 @@ import { CheckoutPage } from "./pages/CheckoutPage.jsx";
 import { AuctionCheckoutPage } from "./pages/AuctionCheckoutPage.jsx";
 import { OrderSuccessPage } from "./pages/OrderSuccessPage.jsx";
 import { MyOrdersPage } from "./pages/MyOrdersPage.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import ErrorTestPage from "./pages/ErrorTestPage.jsx";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: 2,
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors (client errors)
+        if (error?.status >= 400 && error?.status < 500) {
+          return false;
+        }
+        // Retry up to 2 times for server errors
+        return failureCount < 2;
+      },
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: false, // Don't retry mutations
     },
   },
 });
@@ -51,12 +64,13 @@ function ToasterWithTheme() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ThemeProvider>
-            <ToasterWithTheme />
-            <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemeProvider>
+              <ToasterWithTheme />
+              <Routes>
               <Route element={<MainLayout />}>
                 <Route path="/" element={<ListingsPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -65,6 +79,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/listings" element={<ListingsPage />} />
+                <Route path="/error-test" element={<ErrorTestPage />} />
               </Route>
               <Route element={<ProtectedLayout />}>
                 <Route path="/create-item" element={<CreateItemPage />} />
@@ -81,11 +96,12 @@ function App() {
                 <Route path="/fixed-price/:productId" element={<FixedPriceDetails />} />
                 <Route path="/auctions/:auctionId" element={<AuctionDetails />} />
               </Route>
-            </Routes>
-          </ThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+              </Routes>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

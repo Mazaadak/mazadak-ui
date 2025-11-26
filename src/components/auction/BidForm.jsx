@@ -6,10 +6,12 @@ import { Label } from '../ui/label';
 import { Card, CardContent } from '../ui/card';
 import { AlertCircle, Gavel, Check } from 'lucide-react';
 import { calculateMinimumBid, validateBidAmount, generateIdempotencyKey, formatCurrency } from '../../lib/auctionUtils';
+import { getErrorMessage, getValidationErrors, isValidationError, showSuccessToast } from '../../lib/errorUtils';
 
 export const BidForm = ({ auction, userId, onSuccess }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   
   const placeBid = usePlaceBid();
   const minBid = calculateMinimumBid(auction);
@@ -17,6 +19,7 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     // Validate bid amount
     const validation = validateBidAmount(bidAmount, auction);
@@ -39,12 +42,20 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
       {
         onSuccess: () => {
           setBidAmount('');
+          showSuccessToast('Bid Placed', 'Your bid has been placed successfully!');
           onSuccess?.();
         },
         onError: (err) => {
-          // Handle ProblemDetails error
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to place bid';
-          setError(errorMessage);
+          // Handle validation errors (field-specific)
+          if (isValidationError(err)) {
+            const validationErrors = getValidationErrors(err);
+            setFieldErrors(validationErrors);
+            setError('Please correct the errors below.');
+          } else {
+            // Handle other errors (general message)
+            const errorMessage = getErrorMessage(err);
+            setError(errorMessage);
+          }
         },
       }
     );
@@ -77,10 +88,17 @@ export const BidForm = ({ auction, userId, onSuccess }) => {
                   onChange={(e) => {
                     setBidAmount(e.target.value);
                     setError('');
+                    setFieldErrors({});
                   }}
                   disabled={placeBid.isPending}
-                  className="text-lg"
+                  className={`text-lg ${fieldErrors.amount ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                 />
+                {fieldErrors.amount && (
+                  <p className="text-sm text-destructive mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {fieldErrors.amount}
+                  </p>
+                )}
               </div>
               <Button
                 type="button"

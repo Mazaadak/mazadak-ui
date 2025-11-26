@@ -6,10 +6,12 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { AlertCircle, TrendingUp, Check, Trash2 } from 'lucide-react';
 import { calculateMinimumBid, formatCurrency } from '../../lib/auctionUtils';
+import { getErrorMessage, getValidationErrors, isValidationError, showSuccessToast } from '../../lib/errorUtils';
 
 export const ProxyBidForm = ({ auction, userId }) => {
   const [maxAmount, setMaxAmount] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   
   const createOrUpdateProxyBid = useCreateOrUpdateProxyBid();
   const deleteProxyBid = useDeleteProxyBid();
@@ -26,6 +28,7 @@ export const ProxyBidForm = ({ auction, userId }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     const numMaxAmount = Number(maxAmount);
 
@@ -52,10 +55,22 @@ export const ProxyBidForm = ({ auction, userId }) => {
       {
         onSuccess: () => {
           setError('');
+          showSuccessToast(
+            existingProxyBid ? 'Proxy Bid Updated' : 'Proxy Bid Set',
+            existingProxyBid ? 'Your maximum bid has been updated.' : 'Your automatic bidding is now active.'
+          );
         },
         onError: (err) => {
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to set proxy bid';
-          setError(errorMessage);
+          // Handle validation errors (field-specific)
+          if (isValidationError(err)) {
+            const validationErrors = getValidationErrors(err);
+            setFieldErrors(validationErrors);
+            setError('Please correct the errors below.');
+          } else {
+            // Handle other errors (general message)
+            const errorMessage = getErrorMessage(err);
+            setError(errorMessage);
+          }
         },
       }
     );
@@ -71,9 +86,11 @@ export const ProxyBidForm = ({ auction, userId }) => {
         onSuccess: () => {
           setMaxAmount('');
           setError('');
+          setFieldErrors({});
+          showSuccessToast('Proxy Bid Removed', 'Your automatic bidding has been cancelled.');
         },
         onError: (err) => {
-          const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to delete proxy bid';
+          const errorMessage = getErrorMessage(err);
           setError(errorMessage);
         },
       }
@@ -104,9 +121,17 @@ export const ProxyBidForm = ({ auction, userId }) => {
               onChange={(e) => {
                 setMaxAmount(e.target.value);
                 setError('');
+                setFieldErrors({});
               }}
               disabled={createOrUpdateProxyBid.isPending || deleteProxyBid.isPending || isLoadingProxyBid}
+              className={fieldErrors.maxAmount ? 'border-destructive focus-visible:ring-destructive' : ''}
             />
+            {fieldErrors.maxAmount && (
+              <p className="text-sm text-destructive mt-1.5 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                {fieldErrors.maxAmount}
+              </p>
+            )}
           </div>
 
           {existingProxyBid && (
